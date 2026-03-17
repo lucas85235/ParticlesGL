@@ -16,6 +16,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
+#include "../ui/AssetsPanel.hpp"
 #include "../ui/InspectorPanel.hpp"
 #include "../ui/ScenePanel.hpp"
 #include "../ui/StatsPanel.hpp"
@@ -146,6 +147,10 @@ void Application::run() {
         camera.setViewportSize(width, height);
       });
 
+  UI::AssetsPanel assetsPanel;
+  assetsPanel.setRegistry(&registry);
+  assetsPanel.setAssetsRoot("assets");
+
   // Create emitter entity
   auto emitterEntity = registry.createEntity();
   registry.addComponent<ECS::Components::Transform>(
@@ -208,8 +213,12 @@ void Application::run() {
         auto dock_id_stats =
             ImGui::DockBuilderSplitNode(dock_id_inspector, ImGuiDir_Down, 0.30f,
                                         nullptr, &dock_id_inspector);
+        // Assets panel splits the bottom of the left/scene column
+        auto dock_id_assets = ImGui::DockBuilderSplitNode(
+            dock_id_scene, ImGuiDir_Down, 0.40f, nullptr, &dock_id_scene);
 
         ImGui::DockBuilderDockWindow("Scene", dock_id_scene);
+        ImGui::DockBuilderDockWindow("Assets", dock_id_assets);
         ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
         ImGui::DockBuilderDockWindow("Stats", dock_id_stats);
         ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
@@ -267,8 +276,11 @@ void Application::run() {
 
     // Render UI Panels
     scenePanel.onImGuiRender();
-    inspectorPanel.setSelectedEntity(scenePanel.getSelectedEntity());
+    auto selectedEntity = scenePanel.getSelectedEntity();
+    inspectorPanel.setSelectedEntity(selectedEntity);
     inspectorPanel.onImGuiRender();
+    assetsPanel.setSelectedEntity(selectedEntity);
+    assetsPanel.onImGuiRender();
     statsPanel.onImGuiRender();
     viewportPanel.onImGuiRender(framebuffer->getColorAttachmentRendererID());
 

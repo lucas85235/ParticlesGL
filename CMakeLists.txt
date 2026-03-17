@@ -30,6 +30,7 @@ add_executable(ParticleGL
     src/ui/ScenePanel.cpp
     src/ui/InspectorPanel.cpp
     src/ui/StatsPanel.cpp
+    src/ui/AssetsPanel.cpp
     src/ui/ViewportPanel.cpp
 )
 
