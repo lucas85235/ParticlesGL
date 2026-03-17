@@ -1,7 +1,9 @@
 #include "Application.hpp"
 #include "core/Logger.hpp"
 #include "ecs/Registry.hpp"
+#include "ecs/components/Lifetime.hpp"
 #include "ecs/components/ParticleEmitter.hpp"
+#include "ecs/components/Renderable.hpp"
 #include "ecs/components/Transform.hpp"
 #include "ecs/systems/ParticleSystem.hpp"
 #include "renderer/Camera.hpp"
@@ -128,14 +130,16 @@ void Application::run() {
       emitterEntity, ECS::Components::ParticleEmitter{
                          100.0f,                      // emit 100 per sec
                          0.0f,                        // timeSinceLastEmission
-                         glm::vec3(0.0f, 1.0f, 0.0f), // initialVelocity
-                         15.0f,                       // spreadAngle
-                         glm::vec4(1.0f),             // startColor
+                         glm::vec3(0.0f, 2.0f, 0.0f), // initialVelocity
+                         25.0f,                       // spreadAngle
+                         glm::vec4(1.0f, 0.5f, 0.2f, 1.0f), // startColor
                          glm::vec4(1.0f, 1.0f, 1.0f, 0.0f), // endColor
                          2.0f,                              // particleLifetime
                          5000,                              // up to 5000 max
                          0                                  // activeParticles
                      });
+  registry.addComponent<ECS::Components::Lifetime>(emitterEntity,
+                                                   ECS::Components::Lifetime{});
 
   float time_accumulator = 0.0f;
 
@@ -159,10 +163,7 @@ void Application::run() {
 
     Renderer::Renderer::beginScene(camera);
 
-    // Render base triangle
-    glm::mat4 transform = glm::rotate(glm::mat4(1.0f), time_accumulator,
-                                      glm::vec3(0.0f, 0.0f, 1.0f));
-    Renderer::Renderer::draw(triangle, rawShader, transform);
+    // Rendering only the particles in this test
 
     // Render particles
     auto &pools = particleSystem.getPools();
@@ -171,12 +172,9 @@ void Application::run() {
       auto &mutablePool = const_cast<Particles::ParticlePool &>(pool);
       mutablePool.flushToGPU();
 
-      // Reusing the triangle mesh as the base geometry for particles for now
-      // MUST LINK VAO Attributes from the vbo before drawing
-      // Assuming triangle VAO bindings are valid. A real pipeline would manage
-      // these cleanly per-mesh
-      mutablePool.getInstanceBuffer().linkToVao(
-          1); // Assuming layout(location=0) was used by Mesh for aPos.
+      triangle.bind();
+      mutablePool.getInstanceBuffer().linkToVao(1);
+      triangle.unbind();
 
       Renderer::Renderer::drawInstanced(
           triangle, mutablePool.getInstanceBuffer(), particleShader);

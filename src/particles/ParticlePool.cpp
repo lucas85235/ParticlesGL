@@ -15,8 +15,8 @@ ParticlePool::ParticlePool(uint32_t maxParticles)
   std::vector<uint32_t> layout = {3, 1, 4};
 
   // Allocate GPU buffer using max size cap
-  instance_buffer_ = std::make_unique<Renderer::InstanceBuffer>(
-      maxParticles * sizeof(ParticleInstanceData), layout);
+  instance_buffer_ =
+      std::make_unique<Renderer::InstanceBuffer>(maxParticles, layout);
 }
 
 bool ParticlePool::emit(const ParticleInstanceData &initialInstanceData,

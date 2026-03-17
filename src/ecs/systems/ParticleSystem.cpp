@@ -6,6 +6,16 @@
 namespace ParticleGL::ECS::Systems {
 
 void ParticleSystem::update(Registry &registry, float dt) {
+  // Cleanup dead emitters
+  for (auto it = pools_.begin(); it != pools_.end();) {
+    if (!registry.hasComponent<Components::ParticleEmitter>(it->first)) {
+      emission_accumulators_.erase(it->first);
+      it = pools_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
   auto candidates = registry.getEntitiesWith<Components::ParticleEmitter>();
 
   // We don't have a native sparse-set view yet, so we iterate all entities
@@ -55,19 +65,25 @@ void ParticleSystem::update(Registry &registry, float dt) {
       Particles::ParticleInstanceData pInst;
       pInst.position = transform.position;
       pInst.scale = 1.0f;
-      pInst.color = glm::vec4(1.0f);
+      pInst.color = emitter.startColor;
 
       Particles::ParticleSimData pSim;
-      // Simple outward spread based on initial velocity direction + random
-      // spray
-      glm::vec3 randomVelocity(rand_spread(gen), rand_spread(gen),
-                               rand_spread(gen));
+      glm::vec3 spray(rand_spread(gen), rand_spread(gen), rand_spread(gen));
+      float speed = glm::length(emitter.initialVelocity);
+      glm::vec3 baseDir = speed > 0.001f
+                              ? glm::normalize(emitter.initialVelocity)
+                              : glm::vec3(0.0f, 1.0f, 0.0f);
 
-      // Normalize and scale by emitter speed if you had one in ParticleEmitter,
-      // using a hardcoded spray for now
-      pSim.velocity = randomVelocity * 2.0f;
+      glm::vec3 dir = baseDir + spray * (emitter.spreadAngle / 90.0f);
+      if (glm::length(dir) > 0.001f) {
+        dir = glm::normalize(dir);
+      } else {
+        dir = baseDir;
+      }
+
+      pSim.velocity = dir * speed;
       pSim.life = 0.0f;
-      pSim.maxLife = 2.0f; // Could be moved to ParticleEmitter config
+      pSim.maxLife = emitter.particleLifetime;
 
       if (!pool.emit(pInst, pSim)) {
         break; // Pool is full
@@ -96,8 +112,8 @@ void ParticleSystem::update(Registry &registry, float dt) {
       // Interpolate Properties over life
       float lifePct = sim.life / sim.maxLife;
 
-      // Fade out
-      inst.color.a = 1.0f - lifePct;
+      // Color
+      inst.color = glm::mix(emitter.startColor, emitter.endColor, lifePct);
 
       // Scale down
       inst.scale = 1.0f * (1.0f - lifePct);

@@ -23,7 +23,7 @@ TEST_F(ParticleSystemTest, SpawnsParticlesCorrectly) {
   registry.addComponent<Components::ParticleEmitter>(
       e,
       Components::ParticleEmitter{100.0f, 0.0f, glm::vec3(0.0f), 0.0f,
-                                  glm::vec4(1.0f), glm::vec4(0.0f), 1.0f, 10});
+                                  glm::vec4(1.0f), glm::vec4(0.0f), 2.0f, 10});
 
   // 100 particles per second * 0.05 seconds = 5 particles
   system.update(registry, 0.05f);
@@ -39,7 +39,7 @@ TEST_F(ParticleSystemTest, InterpolatesPropertiesAndKillsOverTime) {
   registry.addComponent<Components::ParticleEmitter>(
       e,
       Components::ParticleEmitter{100.0f, 0.0f, glm::vec3(0.0f), 0.0f,
-                                  glm::vec4(1.0f), glm::vec4(0.0f), 1.0f, 10});
+                                  glm::vec4(1.0f), glm::vec4(0.0f), 2.0f, 10});
 
   // Spawn 5
   system.update(registry, 0.05f);
