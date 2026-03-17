@@ -21,6 +21,8 @@ add_executable(ParticleGL
     src/renderer/InstanceBuffer.cpp
     src/renderer/Camera.cpp
     src/renderer/Renderer.cpp
+    src/particles/ParticlePool.cpp
+    src/ecs/systems/ParticleSystem.cpp
 )
 
 target_include_directories(ParticleGL PRIVATE src)

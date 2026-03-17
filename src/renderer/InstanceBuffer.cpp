@@ -14,18 +14,22 @@ InstanceBuffer::InstanceBuffer(uint32_t maxInstances,
   }
   stride_bytes_ = stride * sizeof(float);
 
+#ifndef PGL_TEST_ENV
   glGenBuffers(1, &vbo_);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);
   // Allocate mutable buffer space (usage: GL_DYNAMIC_DRAW)
   glBufferData(GL_ARRAY_BUFFER, max_instances_ * stride_bytes_, nullptr,
                GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+#endif
 }
 
 InstanceBuffer::~InstanceBuffer() {
+#ifndef PGL_TEST_ENV
   if (vbo_ != 0) {
     glDeleteBuffers(1, &vbo_);
   }
+#endif
 }
 
 InstanceBuffer::InstanceBuffer(InstanceBuffer &&other) noexcept
@@ -40,9 +44,11 @@ InstanceBuffer::InstanceBuffer(InstanceBuffer &&other) noexcept
 
 InstanceBuffer &InstanceBuffer::operator=(InstanceBuffer &&other) noexcept {
   if (this != &other) {
+#ifndef PGL_TEST_ENV
     if (vbo_ != 0) {
       glDeleteBuffers(1, &vbo_);
     }
+#endif
 
     vbo_ = other.vbo_;
     max_instances_ = other.max_instances_;
@@ -59,6 +65,7 @@ InstanceBuffer &InstanceBuffer::operator=(InstanceBuffer &&other) noexcept {
 }
 
 void InstanceBuffer::linkToVao(uint32_t startingAttribIndex) const {
+#ifndef PGL_TEST_ENV
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);
 
   uint32_t offset = 0;
@@ -75,12 +82,14 @@ void InstanceBuffer::linkToVao(uint32_t startingAttribIndex) const {
   }
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+#endif
 }
 
 void InstanceBuffer::updateData(const void *data, uint32_t instanceCount) {
   active_instances_ =
       (instanceCount > max_instances_) ? max_instances_ : instanceCount;
 
+#ifndef PGL_TEST_ENV
   if (active_instances_ > 0) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     // Use glBufferSubData to selectively update just the active block
@@ -88,6 +97,7 @@ void InstanceBuffer::updateData(const void *data, uint32_t instanceCount) {
                     data);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
+#endif
 }
 
 } // namespace ParticleGL::Renderer

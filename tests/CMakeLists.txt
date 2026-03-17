@@ -6,12 +6,18 @@ add_executable(ParticleGL_Tests
     ecs/test_system.cpp
     ecs/test_components.cpp
     renderer/test_camera.cpp
+    particles/test_particle_pool.cpp
+    particles/test_particle_system.cpp
     ../src/ecs/Registry.cpp
     ../src/renderer/Camera.cpp
+    ../src/particles/ParticlePool.cpp
+    ../src/ecs/systems/ParticleSystem.cpp
+    ../src/renderer/InstanceBuffer.cpp
 )
 
-target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main)
+target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main glad)
 target_include_directories(ParticleGL_Tests PRIVATE ../src)
+target_compile_definitions(ParticleGL_Tests PRIVATE PGL_TEST_ENV)
 
 include(GoogleTest)
 gtest_discover_tests(ParticleGL_Tests)

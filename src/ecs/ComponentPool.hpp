@@ -78,6 +78,10 @@ public:
   std::vector<T> &getData() { return components_; }
   const std::vector<T> &getData() const { return components_; }
 
+  const std::unordered_map<std::size_t, Entity> &getIndexToEntityMap() const {
+    return index_to_entity_;
+  }
+
 private:
   std::vector<T> components_;
   std::unordered_map<Entity, std::size_t> entity_to_index_;

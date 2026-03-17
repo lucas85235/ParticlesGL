@@ -41,6 +41,20 @@ public:
     return getComponentPool<T>()->get(entity);
   }
 
+  // Helper to fetch all entities that possess a specific component
+  // Real sparse-set views do an intersection, here we just return the first
+  // pool's entities and let the caller double check.
+  template <typename T> std::vector<Entity> getEntitiesWith() {
+    auto pool = getComponentPool<T>();
+    const auto &indexToEntity = pool->getIndexToEntityMap();
+    std::vector<Entity> entities;
+    entities.reserve(indexToEntity.size());
+    for (const auto &pair : indexToEntity) {
+      entities.push_back(pair.second);
+    }
+    return entities;
+  }
+
 private:
   std::unordered_map<std::type_index, std::unique_ptr<IComponentPool>>
       component_pools_;
