@@ -1,4 +1,5 @@
 #include "ScenePanel.hpp"
+#include "../ecs/components/Transform.hpp"
 #include "../serialization/SceneSerializer.hpp"
 #include <cstdio>
 #include <imgui.h>
@@ -37,6 +38,10 @@ void ScenePanel::onImGuiRender() {
                                            ImGuiPopupFlags_NoOpenOverItems)) {
       if (ImGui::MenuItem("Create Empty Entity")) {
         ECS::Entity new_ent = registry_->createEntity();
+        registry_->addComponent<ECS::Components::Transform>(
+            new_ent, ECS::Components::Transform{
+                         glm::vec3(0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+                         glm::vec3(1.0f)});
         selected_entity_ = new_ent;
       }
       ImGui::EndPopup();

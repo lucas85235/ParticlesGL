@@ -3,6 +3,7 @@
 
 #include "../ecs/components/Lifetime.hpp"
 #include "../ecs/components/ParticleEmitter.hpp"
+#include "../ecs/components/Renderable.hpp"
 #include "../ecs/components/Transform.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -44,13 +45,43 @@ void DrawLifetimeInspector(ECS::Registry &reg, ECS::Entity entity) {
   ImGui::Text("Active: %s", lifetime.active ? "True" : "False");
 }
 
+void DrawRenderableInspector(ECS::Registry &reg, ECS::Entity entity) {
+  auto &renderable = reg.getComponent<ECS::Components::Renderable>(entity);
+  // Using DragInt since they are uint32_t IDs
+  int mId = (int)renderable.meshId;
+  if (ImGui::DragInt("Mesh ID", &mId, 1, 0, 100))
+    renderable.meshId = mId;
+
+  int sId = (int)renderable.shaderId;
+  if (ImGui::DragInt("Shader ID", &sId, 1, 0, 100))
+    renderable.shaderId = sId;
+}
+
 template <typename T>
 void DrawComponent(const char *name, ECS::Registry &registry,
                    ECS::Entity entity,
-                   void (*drawFunc)(ECS::Registry &, ECS::Entity)) {
+                   void (*drawFunc)(ECS::Registry &, ECS::Entity),
+                   bool canRemove = true) {
   if (registry.hasComponent<T>(entity)) {
-    if (ImGui::CollapsingHeader(name)) {
+    bool removeComponent = false;
+    if (ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (canRemove && ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Remove Component")) {
+          removeComponent = true;
+        }
+        ImGui::EndPopup();
+      }
       drawFunc(registry, entity);
+    } else {
+      if (canRemove && ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Remove Component")) {
+          removeComponent = true;
+        }
+        ImGui::EndPopup();
+      }
+    }
+    if (removeComponent) {
+      registry.removeComponent<T>(entity);
     }
   }
 }
@@ -68,35 +99,53 @@ void InspectorPanel::onImGuiRender() {
     }
 
     if (ImGui::BeginPopup("AddComponent")) {
-      if (ImGui::MenuItem("Transform")) {
-        if (!registry_->hasComponent<ECS::Components::Transform>(entity))
+      if (!registry_->hasComponent<ECS::Components::Transform>(entity)) {
+        if (ImGui::MenuItem("Transform")) {
           registry_->addComponent<ECS::Components::Transform>(
               entity, ECS::Components::Transform{});
-        ImGui::CloseCurrentPopup();
+          ImGui::CloseCurrentPopup();
+        }
       }
-      if (ImGui::MenuItem("Particle Emitter")) {
-        if (!registry_->hasComponent<ECS::Components::ParticleEmitter>(entity))
+
+      if (!registry_->hasComponent<ECS::Components::ParticleEmitter>(entity)) {
+        if (ImGui::MenuItem("Particle Emitter")) {
           registry_->addComponent<ECS::Components::ParticleEmitter>(
               entity, ECS::Components::ParticleEmitter{});
-        ImGui::CloseCurrentPopup();
+          ImGui::CloseCurrentPopup();
+        }
       }
-      if (ImGui::MenuItem("Lifetime")) {
-        if (!registry_->hasComponent<ECS::Components::Lifetime>(entity))
+
+      if (!registry_->hasComponent<ECS::Components::Lifetime>(entity)) {
+        if (ImGui::MenuItem("Lifetime")) {
           registry_->addComponent<ECS::Components::Lifetime>(
               entity, ECS::Components::Lifetime{});
-        ImGui::CloseCurrentPopup();
+          ImGui::CloseCurrentPopup();
+        }
       }
+
+      if (!registry_->hasComponent<ECS::Components::Renderable>(entity)) {
+        if (ImGui::MenuItem("Renderable")) {
+          registry_->addComponent<ECS::Components::Renderable>(
+              entity, ECS::Components::Renderable{});
+          ImGui::CloseCurrentPopup();
+        }
+      }
+
       ImGui::EndPopup();
     }
 
     ImGui::Separator();
 
     DrawComponent<ECS::Components::Transform>("Transform", *registry_, entity,
-                                              DrawTransformInspector);
+                                              DrawTransformInspector,
+                                              false); // cannot remove Transform
+    DrawComponent<ECS::Components::Renderable>("Renderable", *registry_, entity,
+                                               DrawRenderableInspector, true);
     DrawComponent<ECS::Components::ParticleEmitter>(
-        "Particle Emitter", *registry_, entity, DrawParticleEmitterInspector);
+        "Particle Emitter", *registry_, entity, DrawParticleEmitterInspector,
+        true);
     DrawComponent<ECS::Components::Lifetime>("Lifetime", *registry_, entity,
-                                             DrawLifetimeInspector);
+                                             DrawLifetimeInspector, true);
   } else {
     ImGui::Text("No entity selected");
   }

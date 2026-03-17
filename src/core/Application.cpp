@@ -219,7 +219,15 @@ void Application::run() {
     Renderer::Renderer::clear();
     Renderer::Renderer::beginScene(camera);
 
-    // Rendering only the particles in this test
+    // Render standard entities with Renderable
+    auto renderables = registry.getEntitiesWith<ECS::Components::Renderable>();
+    for (auto entity : renderables) {
+      if (registry.hasComponent<ECS::Components::Transform>(entity)) {
+        auto &transform =
+            registry.getComponent<ECS::Components::Transform>(entity);
+        Renderer::Renderer::draw(triangle, rawShader, transform.matrix());
+      }
+    }
 
     // Render particles
     auto &pools = particleSystem.getPools();
