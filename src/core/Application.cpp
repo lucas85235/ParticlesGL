@@ -187,26 +187,31 @@ void Application::run() {
     static bool first_time = true;
     if (first_time) {
       first_time = false;
-      ImGui::DockBuilderRemoveNode(dockspace_id);
-      ImGui::DockBuilderAddNode(dockspace_id,
-                                ImGuiDockNodeFlags_PassthruCentralNode |
-                                    ImGuiDockNodeFlags_DockSpace);
-      ImGui::DockBuilderSetNodeSize(dockspace_id,
-                                    ImGui::GetMainViewport()->Size);
+      // Only rebuild the dockspace layout if it's not already loaded from
+      // imgui.ini
+      if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr) {
+        ImGui::DockBuilderRemoveNode(dockspace_id);
+        ImGui::DockBuilderAddNode(dockspace_id,
+                                  ImGuiDockNodeFlags_PassthruCentralNode |
+                                      ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(dockspace_id,
+                                      ImGui::GetMainViewport()->Size);
 
-      auto dock_id_scene = ImGui::DockBuilderSplitNode(
-          dockspace_id, ImGuiDir_Left, 0.20f, nullptr, &dockspace_id);
-      auto dock_id_inspector = ImGui::DockBuilderSplitNode(
-          dockspace_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_id);
-      auto dock_id_stats = ImGui::DockBuilderSplitNode(
-          dock_id_inspector, ImGuiDir_Down, 0.30f, nullptr, &dock_id_inspector);
+        auto dock_id_scene = ImGui::DockBuilderSplitNode(
+            dockspace_id, ImGuiDir_Left, 0.20f, nullptr, &dockspace_id);
+        auto dock_id_inspector = ImGui::DockBuilderSplitNode(
+            dockspace_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_id);
+        auto dock_id_stats =
+            ImGui::DockBuilderSplitNode(dock_id_inspector, ImGuiDir_Down, 0.30f,
+                                        nullptr, &dock_id_inspector);
 
-      ImGui::DockBuilderDockWindow("Scene", dock_id_scene);
-      ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
-      ImGui::DockBuilderDockWindow("Stats", dock_id_stats);
-      ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
+        ImGui::DockBuilderDockWindow("Scene", dock_id_scene);
+        ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
+        ImGui::DockBuilderDockWindow("Stats", dock_id_stats);
+        ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
 
-      ImGui::DockBuilderFinish(dockspace_id);
+        ImGui::DockBuilderFinish(dockspace_id);
+      }
     }
 
     // Render Scene into Framebuffer
