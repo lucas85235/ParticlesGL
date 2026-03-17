@@ -1,0 +1,7 @@
+[INFO] Creating window ParticleGL (1280, 720)
+[INFO] OpenGL Info:
+[INFO]   Vendor: Intel
+[INFO]   Renderer: Mesa Intel(R) UHD Graphics 620 (KBL GT2)
+[INFO]   Version: 4.6 (Core Profile) Mesa 23.2.1-1ubuntu3.1~22.04.3
+[INFO] Application created successfully
+[INFO] Application created successfully

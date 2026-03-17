@@ -7,6 +7,7 @@
 #include "ecs/components/Transform.hpp"
 #include "ecs/systems/ParticleSystem.hpp"
 #include "renderer/Camera.hpp"
+#include "renderer/Framebuffer.hpp"
 #include "renderer/Mesh.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Shader.hpp"
@@ -16,8 +17,11 @@
 #include "../ui/InspectorPanel.hpp"
 #include "../ui/ScenePanel.hpp"
 #include "../ui/StatsPanel.hpp"
+#include "../ui/ViewportPanel.hpp"
 
 #include <glad/glad.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include <GLFW/glfw3.h>
 
@@ -51,10 +55,18 @@ void Application::run() {
   Renderer::Camera camera(1280, 720);
   camera.setPosition({0.0f, 0.0f, 3.0f});
 
-  window_->setEventCallback([&camera](uint32_t width, uint32_t height) {
-    Renderer::Renderer::setViewport(width, height);
-    camera.setViewportSize(width, height);
-  });
+  // Framebuffer Setup
+  Renderer::FramebufferSpecification fbSpec;
+  fbSpec.width = 1280;
+  fbSpec.height = 720;
+  std::shared_ptr<Renderer::Framebuffer> framebuffer =
+      std::make_shared<Renderer::Framebuffer>(fbSpec);
+
+  // We no longer strictly tie the window resize to the camera aspect ratio
+  // directly, since the scene view is contained within the ViewportPanel. We
+  // keep the window resize to update main viewport if needed.
+  window_->setEventCallback(
+      [](uint32_t width, uint32_t height) { glViewport(0, 0, width, height); });
 
   // Test Triangle
   std::vector<float> vertices = {
@@ -123,6 +135,12 @@ void Application::run() {
   inspectorPanel.setRegistry(&registry);
   UI::StatsPanel statsPanel;
   statsPanel.setRegistry(&registry);
+  UI::ViewportPanel viewportPanel;
+  viewportPanel.setResizeCallback(
+      [&camera, framebuffer](uint32_t width, uint32_t height) {
+        framebuffer->resize(width, height);
+        camera.setViewportSize(width, height);
+      });
 
   // Create emitter entity
   auto emitterEntity = registry.createEntity();
@@ -155,17 +173,45 @@ void Application::run() {
     // 1. Sim Logic
     particleSystem.update(registry, dt);
 
-    // 2. Render
-    Renderer::Renderer::clear();
-
+    // Wait until beginFrame to draw UI Context
     ui_layer_->beginFrame();
 
-    // Render UI Panels
-    scenePanel.onImGuiRender();
-    inspectorPanel.setSelectedEntity(scenePanel.getSelectedEntity());
-    inspectorPanel.onImGuiRender();
-    statsPanel.onImGuiRender();
+    // Clear the default framebuffer for the main window background
+    Renderer::Renderer::clear();
 
+    // Enable Dockspace over the entire base window
+    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+    ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(),
+                                 ImGuiDockNodeFlags_PassthruCentralNode);
+
+    static bool first_time = true;
+    if (first_time) {
+      first_time = false;
+      ImGui::DockBuilderRemoveNode(dockspace_id);
+      ImGui::DockBuilderAddNode(dockspace_id,
+                                ImGuiDockNodeFlags_PassthruCentralNode |
+                                    ImGuiDockNodeFlags_DockSpace);
+      ImGui::DockBuilderSetNodeSize(dockspace_id,
+                                    ImGui::GetMainViewport()->Size);
+
+      auto dock_id_scene = ImGui::DockBuilderSplitNode(
+          dockspace_id, ImGuiDir_Left, 0.20f, nullptr, &dockspace_id);
+      auto dock_id_inspector = ImGui::DockBuilderSplitNode(
+          dockspace_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_id);
+      auto dock_id_stats = ImGui::DockBuilderSplitNode(
+          dock_id_inspector, ImGuiDir_Down, 0.30f, nullptr, &dock_id_inspector);
+
+      ImGui::DockBuilderDockWindow("Scene", dock_id_scene);
+      ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
+      ImGui::DockBuilderDockWindow("Stats", dock_id_stats);
+      ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
+
+      ImGui::DockBuilderFinish(dockspace_id);
+    }
+
+    // Render Scene into Framebuffer
+    framebuffer->bind();
+    Renderer::Renderer::clear();
     Renderer::Renderer::beginScene(camera);
 
     // Rendering only the particles in this test
@@ -186,6 +232,14 @@ void Application::run() {
     }
 
     Renderer::Renderer::endScene();
+    framebuffer->unbind();
+
+    // Render UI Panels
+    scenePanel.onImGuiRender();
+    inspectorPanel.setSelectedEntity(scenePanel.getSelectedEntity());
+    inspectorPanel.onImGuiRender();
+    statsPanel.onImGuiRender();
+    viewportPanel.onImGuiRender(framebuffer->getColorAttachmentRendererID());
 
     ui_layer_->endFrame();
 

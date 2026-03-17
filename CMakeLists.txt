@@ -19,6 +19,7 @@ add_executable(ParticleGL
     src/renderer/Shader.cpp
     src/renderer/Mesh.cpp
     src/renderer/InstanceBuffer.cpp
+    src/renderer/Framebuffer.cpp
     src/renderer/Camera.cpp
     src/renderer/Renderer.cpp
     src/particles/ParticlePool.cpp
@@ -28,6 +29,7 @@ add_executable(ParticleGL
     src/ui/ScenePanel.cpp
     src/ui/InspectorPanel.cpp
     src/ui/StatsPanel.cpp
+    src/ui/ViewportPanel.cpp
 )
 
 target_include_directories(ParticleGL PRIVATE src)
