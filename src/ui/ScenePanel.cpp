@@ -1,4 +1,5 @@
 #include "ScenePanel.hpp"
+#include "../serialization/SceneSerializer.hpp"
 #include <cstdio>
 #include <imgui.h>
 
@@ -8,6 +9,19 @@ void ScenePanel::onImGuiRender() {
   ImGui::Begin("Scene Hierarchy");
 
   if (registry_) {
+    if (ImGui::Button("Save Scene")) {
+      Serialization::SceneSerializer serializer(registry_);
+      serializer.serialize("scene.json");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load Scene")) {
+      Serialization::SceneSerializer serializer(registry_);
+      if (serializer.deserialize("scene.json")) {
+        selected_entity_ = std::nullopt;
+      }
+    }
+    ImGui::Separator();
+
     auto entities = registry_->getEntities();
     for (auto entity : entities) {
       drawEntityNode(entity);

@@ -23,6 +23,7 @@ add_executable(ParticleGL
     src/renderer/Renderer.cpp
     src/particles/ParticlePool.cpp
     src/ecs/systems/ParticleSystem.cpp
+    src/serialization/SceneSerializer.cpp
     src/ui/UILayer.cpp
     src/ui/ScenePanel.cpp
     src/ui/InspectorPanel.cpp
