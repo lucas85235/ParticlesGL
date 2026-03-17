@@ -17,6 +17,7 @@ public:
   // Entity Management
   Entity createEntity();
   void destroyEntity(Entity entity);
+  std::vector<Entity> getEntities() const;
 
   // Component Management
   template <typename T> void addComponent(Entity entity, T component) {

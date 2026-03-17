@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.hpp"
+#include "ui/UILayer.hpp"
 
 #include <memory>
 
@@ -19,6 +20,7 @@ public:
 
 private:
   std::unique_ptr<Window> window_;
+  std::unique_ptr<UI::UILayer> ui_layer_;
   bool running_ = true;
 
   static Application *s_instance_;

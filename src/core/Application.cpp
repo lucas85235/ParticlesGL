@@ -11,6 +11,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
+#include "../ui/InspectorPanel.hpp"
+#include "../ui/ScenePanel.hpp"
+#include "../ui/StatsPanel.hpp"
+
 #include <glad/glad.h>
 
 #include <GLFW/glfw3.h>
@@ -27,6 +31,7 @@ Application::Application() {
   s_instance_ = this;
 
   window_ = std::make_unique<Window>();
+  ui_layer_ = std::make_unique<UI::UILayer>();
 }
 
 Application::~Application() { s_instance_ = nullptr; }
@@ -35,6 +40,8 @@ void Application::close() { running_ = false; }
 
 void Application::run() {
   PGL_INFO("Application created successfully");
+
+  ui_layer_->init(window_->getNativeWindow());
 
   Renderer::Renderer::init();
   Renderer::Renderer::setClearColor({0.1f, 0.1f, 0.1f, 1.0f});
@@ -103,6 +110,13 @@ void Application::run() {
   ECS::Registry registry;
   ECS::Systems::ParticleSystem particleSystem;
 
+  UI::ScenePanel scenePanel;
+  scenePanel.setRegistry(&registry);
+  UI::InspectorPanel inspectorPanel;
+  inspectorPanel.setRegistry(&registry);
+  UI::StatsPanel statsPanel;
+  statsPanel.setRegistry(&registry);
+
   // Create emitter entity
   auto emitterEntity = registry.createEntity();
   registry.addComponent<ECS::Components::Transform>(
@@ -135,6 +149,14 @@ void Application::run() {
     // 2. Render
     Renderer::Renderer::clear();
 
+    ui_layer_->beginFrame();
+
+    // Render UI Panels
+    scenePanel.onImGuiRender();
+    inspectorPanel.setSelectedEntity(scenePanel.getSelectedEntity());
+    inspectorPanel.onImGuiRender();
+    statsPanel.onImGuiRender();
+
     Renderer::Renderer::beginScene(camera);
 
     // Render base triangle
@@ -162,6 +184,8 @@ void Application::run() {
 
     Renderer::Renderer::endScene();
 
+    ui_layer_->endFrame();
+
     window_->onUpdate();
 
     if (window_->shouldClose()) {
@@ -169,6 +193,7 @@ void Application::run() {
     }
   }
 
+  ui_layer_->shutdown();
   Renderer::Renderer::shutdown();
 }
 

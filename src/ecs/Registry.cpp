@@ -1,4 +1,5 @@
 #include "Registry.hpp"
+#include <algorithm>
 
 namespace ParticleGL::ECS {
 
@@ -19,6 +20,18 @@ void Registry::destroyEntity(Entity entity) {
 
   // Recycle the Entity ID
   free_entities_.push_back(entity);
+}
+
+std::vector<Entity> Registry::getEntities() const {
+  std::vector<Entity> entities;
+  entities.reserve(next_entity_id_ - free_entities_.size());
+  for (Entity i = 0; i < next_entity_id_; ++i) {
+    if (std::find(free_entities_.begin(), free_entities_.end(), i) ==
+        free_entities_.end()) {
+      entities.push_back(i);
+    }
+  }
+  return entities;
 }
 
 } // namespace ParticleGL::ECS
