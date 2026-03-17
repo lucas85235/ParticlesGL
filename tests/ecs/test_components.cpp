@@ -52,8 +52,10 @@ TEST(ParticleEmitterComponentTest, DefaultValues) {
 
 TEST(RenderableComponentTest, DefaultValues) {
   Renderable r;
-  EXPECT_EQ(r.meshId, 0);
-  EXPECT_EQ(r.shaderId, 0);
+  EXPECT_TRUE(r.meshPath.empty());
+  EXPECT_TRUE(r.materialId.empty());
+  EXPECT_FLOAT_EQ(r.baseColor.r, 1.0f);
+  EXPECT_FLOAT_EQ(r.baseColor.a, 1.0f);
 }
 
 TEST(LifetimeComponentTest, DefaultValues) {

@@ -47,14 +47,14 @@ void DrawLifetimeInspector(ECS::Registry &reg, ECS::Entity entity) {
 
 void DrawRenderableInspector(ECS::Registry &reg, ECS::Entity entity) {
   auto &renderable = reg.getComponent<ECS::Components::Renderable>(entity);
-  // Using DragInt since they are uint32_t IDs
-  int mId = (int)renderable.meshId;
-  if (ImGui::DragInt("Mesh ID", &mId, 1, 0, 100))
-    renderable.meshId = mId;
 
-  int sId = (int)renderable.shaderId;
-  if (ImGui::DragInt("Shader ID", &sId, 1, 0, 100))
-    renderable.shaderId = sId;
+  char meshPathBuf[256];
+  strncpy(meshPathBuf, renderable.meshPath.c_str(), sizeof(meshPathBuf));
+  if (ImGui::InputText("Mesh Path", meshPathBuf, sizeof(meshPathBuf))) {
+    renderable.meshPath = meshPathBuf;
+  }
+
+  ImGui::ColorEdit4("Base Color", glm::value_ptr(renderable.baseColor));
 }
 
 template <typename T>

@@ -29,6 +29,10 @@ void SceneSerializer::serialize(const std::string &filepath) {
       entity_json["Lifetime"] =
           registry_->getComponent<Components::Lifetime>(entity);
     }
+    if (registry_->hasComponent<Components::Renderable>(entity)) {
+      entity_json["Renderable"] =
+          registry_->getComponent<Components::Renderable>(entity);
+    }
 
     entities_json.push_back(entity_json);
   }
@@ -68,6 +72,10 @@ bool SceneSerializer::deserialize(const std::string &filepath) {
       if (entity_json.contains("Lifetime")) {
         registry_->addComponent(
             entity, entity_json["Lifetime"].get<Components::Lifetime>());
+      }
+      if (entity_json.contains("Renderable")) {
+        registry_->addComponent(
+            entity, entity_json["Renderable"].get<Components::Renderable>());
       }
     }
   }

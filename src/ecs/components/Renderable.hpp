@@ -1,12 +1,14 @@
 #pragma once
 
-#include <cstdint>
+#include <glm/glm.hpp>
+#include <string>
 
 namespace ParticleGL::ECS::Components {
 
 struct Renderable {
-  uint32_t meshId{0};
-  uint32_t shaderId{0};
+  std::string meshPath{""};
+  std::string materialId{""};
+  glm::vec4 baseColor{1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 };
 
 } // namespace ParticleGL::ECS::Components

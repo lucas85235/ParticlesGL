@@ -14,6 +14,7 @@ include(cmake/dependencies.cmake)
 add_executable(ParticleGL
     src/main.cpp
     src/core/Application.cpp
+    src/core/AssetManager.cpp
     src/core/Window.cpp
     src/ecs/Registry.cpp
     src/renderer/Shader.cpp
@@ -47,6 +48,7 @@ target_link_libraries(ParticleGL PRIVATE
     glm::glm
     imgui
     nlohmann_json::nlohmann_json
+    tinyobjloader::tinyobjloader
 )
 
 # Testing

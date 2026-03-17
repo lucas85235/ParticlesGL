@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "core/AssetManager.hpp"
 #include "core/Logger.hpp"
 #include "ecs/Registry.hpp"
 #include "ecs/components/Lifetime.hpp"
@@ -8,6 +9,7 @@
 #include "ecs/systems/ParticleSystem.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
+#include "renderer/Material.hpp"
 #include "renderer/Mesh.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Shader.hpp"
@@ -125,6 +127,8 @@ void Application::run() {
     )";
   Renderer::Shader particleShader(pVertexSrc, pFragmentSrc);
 
+  Core::AssetManager::init();
+
   // ECS Setup
   ECS::Registry registry;
   ECS::Systems::ParticleSystem particleSystem;
@@ -225,7 +229,20 @@ void Application::run() {
       if (registry.hasComponent<ECS::Components::Transform>(entity)) {
         auto &transform =
             registry.getComponent<ECS::Components::Transform>(entity);
-        Renderer::Renderer::draw(triangle, rawShader, transform.matrix());
+        auto &renderable =
+            registry.getComponent<ECS::Components::Renderable>(entity);
+
+        auto mesh = Core::AssetManager::getMesh(renderable.meshPath);
+        auto material = Core::AssetManager::getMaterial(renderable.materialId);
+
+        if (mesh && material) {
+          // Apply baseColor override directly to material for now
+          material->baseColor = renderable.baseColor;
+          material->bind();
+          Renderer::Renderer::draw(*mesh, *material->shader,
+                                   transform.matrix());
+          material->unbind();
+        }
       }
     }
 
@@ -236,12 +253,13 @@ void Application::run() {
       auto &mutablePool = const_cast<Particles::ParticlePool &>(pool);
       mutablePool.flushToGPU();
 
-      triangle.bind();
+      auto mesh = Core::AssetManager::getDefaultMesh();
+      mesh->bind();
       mutablePool.getInstanceBuffer().linkToVao(1);
-      triangle.unbind();
+      mesh->unbind();
 
-      Renderer::Renderer::drawInstanced(
-          triangle, mutablePool.getInstanceBuffer(), particleShader);
+      Renderer::Renderer::drawInstanced(*mesh, mutablePool.getInstanceBuffer(),
+                                        particleShader);
     }
 
     Renderer::Renderer::endScene();
@@ -263,6 +281,7 @@ void Application::run() {
     }
   }
 
+  Core::AssetManager::shutdown();
   ui_layer_->shutdown();
   Renderer::Renderer::shutdown();
 }

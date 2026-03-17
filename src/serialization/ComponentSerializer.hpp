@@ -6,6 +6,7 @@
 
 #include "../ecs/components/Lifetime.hpp"
 #include "../ecs/components/ParticleEmitter.hpp"
+#include "../ecs/components/Renderable.hpp"
 #include "../ecs/components/Transform.hpp"
 
 namespace glm {
@@ -88,6 +89,22 @@ inline void from_json(const nlohmann::json &j, Lifetime &l) {
   j.at("current").get_to(l.current);
   j.at("max").get_to(l.max);
   j.at("active").get_to(l.active);
+}
+
+inline void to_json(nlohmann::json &j, const Renderable &r) {
+  j = nlohmann::json{
+      {"meshPath", r.meshPath}, // We will add these fields to Renderable.hpp
+      {"materialId", r.materialId},
+      {"baseColor", r.baseColor}};
+}
+
+inline void from_json(const nlohmann::json &j, Renderable &r) {
+  if (j.contains("meshPath"))
+    j.at("meshPath").get_to(r.meshPath);
+  if (j.contains("materialId"))
+    j.at("materialId").get_to(r.materialId);
+  if (j.contains("baseColor"))
+    j.at("baseColor").get_to(r.baseColor);
 }
 
 } // namespace ParticleGL::ECS::Components
