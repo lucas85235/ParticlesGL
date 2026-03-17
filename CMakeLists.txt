@@ -16,6 +16,11 @@ add_executable(ParticleGL
     src/core/Application.cpp
     src/core/Window.cpp
     src/ecs/Registry.cpp
+    src/renderer/Shader.cpp
+    src/renderer/Mesh.cpp
+    src/renderer/InstanceBuffer.cpp
+    src/renderer/Camera.cpp
+    src/renderer/Renderer.cpp
 )
 
 target_include_directories(ParticleGL PRIVATE src)
