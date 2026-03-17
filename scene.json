@@ -1,9 +1,14 @@
 {
     "entities": [
         {
+            "Lifetime": {
+                "active": true,
+                "current": 0.0,
+                "max": 0.20000000298023224
+            },
             "ParticleEmitter": {
-                "activeParticles": 210,
-                "emissionRate": 106.0,
+                "activeParticles": 10,
+                "emissionRate": 10.0,
                 "endColor": {
                     "w": 0.0,
                     "x": 1.0,
@@ -12,29 +17,29 @@
                 },
                 "initialVelocity": {
                     "x": 0.0,
-                    "y": 1.0,
+                    "y": 2.0,
                     "z": 0.0
                 },
                 "maxParticles": 5000,
-                "particleLifetime": 2.0,
-                "spreadAngle": 15.0,
+                "particleLifetime": 1.0,
+                "spreadAngle": 25.0,
                 "startColor": {
                     "w": 1.0,
-                    "x": 1.0,
+                    "x": 0.7176470756530762,
                     "y": 1.0,
-                    "z": 1.0
+                    "z": 0.19999998807907104
                 },
                 "timeSinceLastEmission": 0.0
             },
             "Transform": {
                 "position": {
-                    "x": 2.299999952316284,
-                    "y": 5.0,
-                    "z": 0.800000011920929
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
                 },
                 "rotation": {
-                    "w": 0.9914448857307434,
-                    "x": 0.13052619993686676,
+                    "w": 1.0,
+                    "x": 0.0,
                     "y": 0.0,
                     "z": 0.0
                 },
@@ -45,9 +50,6 @@
                 }
             },
             "id": 0
-        },
-        {
-            "id": 1
         }
     ]
 }

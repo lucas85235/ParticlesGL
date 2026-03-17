@@ -1,5 +1,5 @@
 #pragma once
-
+#include <functional>
 #include <string>
 
 struct GLFWwindow;
@@ -20,9 +20,15 @@ public:
   void onUpdate();
   bool shouldClose() const;
 
+  using EventCallbackFn = std::function<void(uint32_t, uint32_t)>;
+
   inline uint32_t getWidth() const { return data_.width; }
   inline uint32_t getHeight() const { return data_.height; }
   inline GLFWwindow *getNativeWindow() const { return window_; }
+
+  void setEventCallback(const EventCallbackFn &callback) {
+    data_.eventCallback = callback;
+  }
 
 private:
   void init(const WindowProps &props);
@@ -34,6 +40,7 @@ private:
     std::string title;
     uint32_t width;
     uint32_t height;
+    EventCallbackFn eventCallback;
   };
 
   WindowData data_;

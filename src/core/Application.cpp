@@ -51,6 +51,11 @@ void Application::run() {
   Renderer::Camera camera(1280, 720);
   camera.setPosition({0.0f, 0.0f, 3.0f});
 
+  window_->setEventCallback([&camera](uint32_t width, uint32_t height) {
+    Renderer::Renderer::setViewport(width, height);
+    camera.setViewportSize(width, height);
+  });
+
   // Test Triangle
   std::vector<float> vertices = {
       -0.5f, -0.5f, 0.0f, // left

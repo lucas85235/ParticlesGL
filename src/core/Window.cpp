@@ -48,6 +48,17 @@ void Window::init(const WindowProps &props) {
   }
 
   glfwMakeContextCurrent(window_);
+  glfwSetWindowUserPointer(window_, &data_);
+
+  glfwSetFramebufferSizeCallback(
+      window_, [](GLFWwindow *window, int width, int height) {
+        WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        data.width = width;
+        data.height = height;
+        if (data.eventCallback) {
+          data.eventCallback(width, height);
+        }
+      });
 
   // Initialize GLAD
   int version = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
