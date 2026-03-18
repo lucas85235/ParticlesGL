@@ -1,0 +1,63 @@
+#version 430 core
+
+// Single-threaded compaction: runs after particle_simulate.comp.
+// Removes dead particles (swap-and-decrement) then writes instanceCount
+// into the draw indirect buffer for zero-CPU-roundtrip draw.
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer Positions  { vec4  positions[];  };
+layout(std430, binding = 1) buffer Velocities { vec4  velocities[]; };
+layout(std430, binding = 2) buffer Lives      { float lives[];      };
+layout(std430, binding = 3) buffer MaxLives   { float maxLives[];   };
+layout(std430, binding = 4) buffer Colors     { vec4  colors[];     };
+layout(std430, binding = 5) buffer StartColors{ vec4  startColors[];};
+layout(std430, binding = 6) buffer EndColors  { vec4  endColors[];  };
+layout(std430, binding = 7) buffer Scales     { float scales[];     };
+layout(std430, binding = 8) buffer KillList   { uint  killList[];   };
+
+// DrawElementsIndirectCommand
+layout(std430, binding = 9) buffer DrawCommand {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    uint baseVertex;
+    uint baseInstance;
+} drawCmd;
+
+// SSBO pair: [0]=killCount [1]=activeCount (same binding as simulate)
+layout(std430, binding = 10) buffer Counters {
+    uint killCount;
+    uint activeCount;
+};
+
+void swapWithLast(uint dead, uint last) {
+    positions[dead]   = positions[last];
+    velocities[dead]  = velocities[last];
+    lives[dead]       = lives[last];
+    maxLives[dead]    = maxLives[last];
+    colors[dead]      = colors[last];
+    startColors[dead] = startColors[last];
+    endColors[dead]   = endColors[last];
+    scales[dead]      = scales[last];
+}
+
+void main() {
+    uint kills     = killCount;
+    uint liveCount = activeCount;
+
+    // Swap each dead slot with the tail of the live range
+    for (uint k = 0u; k < kills; k++) {
+        uint deadIdx = killList[k];
+        if (liveCount > 0u && deadIdx < liveCount) {
+            swapWithLast(deadIdx, liveCount - 1u);
+            liveCount--;
+        }
+    }
+
+    // Direct write — single-threaded, safe after GL_SHADER_STORAGE_BARRIER_BIT
+    activeCount = liveCount;
+    killCount   = 0u;
+
+    // Write instanceCount into draw indirect command (CPU never reads this)
+    drawCmd.instanceCount = liveCount;
+}

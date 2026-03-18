@@ -15,7 +15,7 @@ void ParticleRenderSystem::render(Registry &registry,
     initGpuTimer();
   }
 
-  // Retrieve async timer result from previous frame (non-blocking)
+  // Async GPU timer — retrieve previous frame's result without stalling
   if (query_in_flight_) {
     GLuint available = 0;
     glGetQueryObjectuiv(query_id_, GL_QUERY_RESULT_AVAILABLE, &available);
@@ -38,17 +38,23 @@ void ParticleRenderSystem::render(Registry &registry,
     auto &pool =
         registry.getComponent<Particles::ParticlePoolComponent>(entity);
 
-    if (pool.active_count == 0 || pool.gpu_buffer == nullptr)
+    if (!pool.gpu_buffer || pool.active_count == 0)
       continue;
 
-    // Phase 2: no interleaving, no memcpy — VBOs already contain fresh data
-    // written directly by the simulation system via mapped pointers.
-    // We only need to link the attributes and issue the draw.
-    mesh->bind();
-    pool.gpu_buffer->linkToVao(1);
-    mesh->unbind();
+    auto &gpuBuf = *pool.gpu_buffer;
 
-    Renderer::Renderer::drawInstanced(*mesh, pool.active_count, particleShader);
+    // Phase 3: no VBOs — the vertex shader reads per-instance data from SSBOs
+    // via gl_InstanceID. We just bind the mesh, the SSBOs, and issue an
+    // indirect draw (instanceCount comes from the GPU directly).
+    particleShader.bind();
+    gpuBuf.bindSsbos();
+    gpuBuf.bindDrawIndirect();
+
+    // Renderer::drawIndirect sets u_ViewProjection from the active camera
+    // then issues glDrawElementsIndirect from the bound indirect buffer.
+    Renderer::Renderer::drawIndirect(*mesh, particleShader);
+
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
   }
 
   if (!query_in_flight_) {

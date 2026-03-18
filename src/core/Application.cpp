@@ -12,9 +12,9 @@
 #include "particles_v2/ParticleSimulationSystem.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
+#include "renderer/GpuParticleBuffer.hpp"
 #include "renderer/Material.hpp"
 #include "renderer/Mesh.hpp"
-#include "renderer/PersistentInstanceBuffer.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Shader.hpp"
 #include <glm/gtc/matrix_transform.hpp>
@@ -146,16 +146,19 @@ void Application::run() {
                          glm::vec3(0.0f, 0.0f, 0.0f),
                          glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
 
-  // Phase 2: PersistentInstanceBuffer — 3 VBOs mapped directly into GPU memory.
-  // The simulation writes position/scale/color straight through the mapped
-  // pointers.
-  std::vector<std::unique_ptr<Renderer::PersistentInstanceBuffer>> appBuffers;
-  appBuffers.push_back(
-      std::make_unique<Renderer::PersistentInstanceBuffer>(5000));
+  // Phase 3: GpuParticleBuffer — full GPU heap of SSBOs + atomic counters.
+  // CPU only writes spawn batch data; simulation runs entirely on GPU.
+  std::vector<std::unique_ptr<Renderer::GpuParticleBuffer>> appBuffers;
+  appBuffers.push_back(std::make_unique<Renderer::GpuParticleBuffer>(5000));
+
+  auto &gpuBuf = *appBuffers.back();
+  auto mesh = Core::AssetManager::getDefaultMesh();
+  if (mesh) {
+    gpuBuf.initDrawCommand(mesh->getIndexCount());
+  }
 
   Particles::ParticlePoolComponent pool;
-  pool.init(5000);
-  pool.gpu_buffer = appBuffers.back().get();
+  pool.init(5000, &gpuBuf);
   registry.addComponent<Particles::ParticlePoolComponent>(emitterEntity,
                                                           std::move(pool));
 

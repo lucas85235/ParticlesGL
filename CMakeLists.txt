@@ -28,6 +28,8 @@ add_executable(ParticleGL
     src/particles_v2/ParticleSimulationSystem.cpp
     src/particles_v2/ParticleRenderSystem.cpp
     src/renderer/PersistentInstanceBuffer.cpp
+    src/renderer/GpuParticleBuffer.cpp
+    src/renderer/ComputeShader.cpp
     src/serialization/SceneSerializer.cpp
     src/ui/UILayer.cpp
     src/ui/ScenePanel.cpp

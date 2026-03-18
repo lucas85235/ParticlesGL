@@ -36,6 +36,11 @@ public:
   static void drawInstanced(const Mesh &mesh, uint32_t instanceCount,
                             const Shader &shader);
 
+  // GPU-indirect draw: sets u_ViewProjection then reads the draw command from
+  // the currently bound GL_DRAW_INDIRECT_BUFFER. Binding the buffer is the
+  // caller's responsibility.
+  static void drawIndirect(const Mesh &mesh, const Shader &shader);
+
 private:
   static const Camera *active_camera_;
 };
