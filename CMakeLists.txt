@@ -33,6 +33,9 @@ add_executable(ParticleGL
     src/ui/AssetsPanel.cpp
     src/ui/ViewportPanel.cpp
     src/ui/MaterialsPanel.cpp
+    src/renderer/ComputeShader.cpp
+    src/renderer/ShaderStorageBuffer.cpp
+    src/demo/ComputeExample.cpp
 )
 
 target_include_directories(ParticleGL PRIVATE src)
