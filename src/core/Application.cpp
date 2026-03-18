@@ -162,6 +162,11 @@ void Application::run() {
     float dt = 0.016f; // approximate step
     time_accumulator += dt;
 
+    // Apply any deferred framebuffer resize from the previous frame's UI pass.
+    // Must happen before framebuffer bind to guarantee the FBO texture
+    // submitted to ImGui::Image is always the current valid one.
+    viewportPanel.applyPendingResize();
+
     // 1. Sim Logic
     particleSystem.update(registry, dt);
 
