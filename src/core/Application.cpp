@@ -14,6 +14,7 @@
 #include "renderer/Framebuffer.hpp"
 #include "renderer/Material.hpp"
 #include "renderer/Mesh.hpp"
+#include "renderer/PersistentInstanceBuffer.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Shader.hpp"
 #include <glm/gtc/matrix_transform.hpp>
@@ -145,12 +146,12 @@ void Application::run() {
                          glm::vec3(0.0f, 0.0f, 0.0f),
                          glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
 
-  // Layout matches the UploadPayload in ParticleRenderSystem: pos(3), scale(1),
-  // color(4)
-  const std::vector<uint32_t> instanceLayout = {3, 1, 4};
-  std::vector<std::unique_ptr<Renderer::InstanceBuffer>> appBuffers;
+  // Phase 2: PersistentInstanceBuffer — 3 VBOs mapped directly into GPU memory.
+  // The simulation writes position/scale/color straight through the mapped
+  // pointers.
+  std::vector<std::unique_ptr<Renderer::PersistentInstanceBuffer>> appBuffers;
   appBuffers.push_back(
-      std::make_unique<Renderer::InstanceBuffer>(5000, instanceLayout));
+      std::make_unique<Renderer::PersistentInstanceBuffer>(5000));
 
   Particles::ParticlePoolComponent pool;
   pool.init(5000);

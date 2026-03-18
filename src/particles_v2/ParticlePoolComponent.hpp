@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/InstanceBuffer.hpp"
+#include "renderer/PersistentInstanceBuffer.hpp"
 
 #include <cstdint>
 #include <glm/glm.hpp>
@@ -8,75 +8,83 @@
 
 namespace ParticleGL::Particles {
 
-// ECS component — SoA particle pool.
-// Lifecycle is managed by the Registry (auto-destroyed with its entity).
-// gpu_buffer is a non-owning pointer; the InstanceBuffer is created and owned
-// by the application layer before being linked here.
+// ECS component — SoA particle pool with zero-copy GPU upload.
+//
+// CPU-only simulation data stays in std::vector (velocity, life, maxLife).
+// GPU-visible data (position, scale, color) is written directly through the
+// persistent mapped pointers in gpu_buffer — no local copies, no
+// glBufferSubData.
+//
+// Lifecycle: gpu_buffer is a non-owning pointer owned by the application layer.
 struct ParticlePoolComponent {
   // ── CPU-only simulation data ────────────────────────────────────────────
-  // These arrays are never uploaded to the GPU.
   std::vector<glm::vec3> velocity;
   std::vector<float> life;
   std::vector<float> maxLife;
-
-  // ── GPU instance data ───────────────────────────────────────────────────
-  // Written by CPU simulation, read by vertex shader via instancing.
-  std::vector<glm::vec3> position;
-  std::vector<float> scale;
-  std::vector<glm::vec4> color;
 
   // ── Pool control ────────────────────────────────────────────────────────
   uint32_t active_count = 0;
   uint32_t max_count = 0;
   float emission_accumulator = 0.0f;
 
-  // Non-owning handle — created and destroyed by the application/render system
-  Renderer::InstanceBuffer *gpu_buffer = nullptr;
+  // Non-owning — created and owned by the application layer
+  Renderer::PersistentInstanceBuffer *gpu_buffer = nullptr;
 
-  // Pre-allocate all SoA arrays to max_count slots.
+  // Pre-allocate all CPU-side SoA arrays.
   void init(uint32_t maxParticles) {
     max_count = maxParticles;
-    velocity.resize(maxParticles, glm::vec3{0.0f});
-    life.resize(maxParticles, 0.0f);
-    maxLife.resize(maxParticles, 1.0f);
-    position.resize(maxParticles, glm::vec3{0.0f});
-    scale.resize(maxParticles, 1.0f);
-    color.resize(maxParticles, glm::vec4{1.0f});
+    velocity.assign(maxParticles, glm::vec3{0.0f});
+    life.assign(maxParticles, 0.0f);
+    maxLife.assign(maxParticles, 1.0f);
     active_count = 0;
     emission_accumulator = 0.0f;
   }
 
-  // O(1) emit — appends to the active slice.
-  // Returns false and discards the spawn if the pool is full.
+  // O(1) emit — appends to the active slice and writes GPU data directly.
+  // Returns false (silent discard) when the pool is full.
   bool emit(glm::vec3 pos, glm::vec3 vel, glm::vec4 startColor,
             float initialScale, float lifeDuration) {
     if (active_count >= max_count)
       return false;
 
-    uint32_t i = active_count;
-    position[i] = pos;
+    const uint32_t i = active_count;
+
+    // CPU data
     velocity[i] = vel;
-    color[i] = startColor;
-    scale[i] = initialScale;
     life[i] = 0.0f;
     maxLife[i] = lifeDuration;
+
+    // GPU data — written directly into persistently mapped VRAM
+    if (gpu_buffer) {
+      gpu_buffer->positionPtr()[i] = pos;
+      gpu_buffer->scalePtr()[i] = initialScale;
+      gpu_buffer->colorPtr()[i] = startColor;
+    }
+
     ++active_count;
     return true;
   }
 
-  // O(1) kill — swap-and-decrement over ALL SoA arrays simultaneously.
+  // O(1) kill — swap-and-decrement across CPU and GPU arrays simultaneously.
   void kill(uint32_t index) {
     if (index >= active_count)
       return;
-    uint32_t last = active_count - 1;
+    const uint32_t last = active_count - 1;
+
     if (index != last) {
-      position[index] = position[last];
+      // CPU arrays
       velocity[index] = velocity[last];
-      color[index] = color[last];
-      scale[index] = scale[last];
       life[index] = life[last];
       maxLife[index] = maxLife[last];
+
+      // GPU arrays — direct pointer write into VRAM
+      if (gpu_buffer) {
+        gpu_buffer->positionPtr()[index] = gpu_buffer->positionPtr()[last];
+        gpu_buffer->scalePtr()[index] = gpu_buffer->scalePtr()[last];
+        gpu_buffer->colorPtr()[index] = gpu_buffer->colorPtr()[last];
+      }
     }
+
     --active_count;
   }
 };

@@ -71,4 +71,23 @@ void Renderer::drawInstanced(const Mesh &mesh,
   mesh.unbind();
 }
 
+void Renderer::drawInstanced(const Mesh &mesh, uint32_t instanceCount,
+                             const Shader &shader) {
+  if (!active_camera_) {
+    PGL_ERROR("Renderer::drawInstanced called outside of beginScene/endScene!");
+    return;
+  }
+
+  if (instanceCount == 0)
+    return;
+
+  shader.bind();
+  shader.setMat4("u_ViewProjection", active_camera_->getViewProjectionMatrix());
+
+  mesh.bind();
+  glDrawElementsInstanced(GL_TRIANGLES, mesh.getIndexCount(), GL_UNSIGNED_INT,
+                          nullptr, instanceCount);
+  mesh.unbind();
+}
+
 } // namespace ParticleGL::Renderer

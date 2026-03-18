@@ -25,9 +25,15 @@ public:
   static void draw(const Mesh &mesh, const Shader &shader,
                    const glm::mat4 &transform);
 
-  // Instanced draw for particles
+  // Instanced draw for particles — legacy path (uses InstanceBuffer active
+  // count)
   static void drawInstanced(const Mesh &mesh,
                             const InstanceBuffer &instanceBuffer,
+                            const Shader &shader);
+
+  // Instanced draw for particles — Phase 2 path (explicit count, no
+  // InstanceBuffer)
+  static void drawInstanced(const Mesh &mesh, uint32_t instanceCount,
                             const Shader &shader);
 
 private:
