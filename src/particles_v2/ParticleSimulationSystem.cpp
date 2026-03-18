@@ -37,12 +37,6 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
       pool.init(emitter.maxParticles);
     }
 
-    // Phase 2: orphan all 3 VBOs and map them for unsynchronized CPU write.
-    // This eliminates the GPU stall that glBufferSubData caused.
-    if (pool.gpu_buffer) {
-      pool.gpu_buffer->beginWrite();
-    }
-
     // ── Spawning Phase ──────────────────────────────────────────────────────
     float toSpawnFloat = dt * emitter.emissionRate + pool.emission_accumulator;
     uint32_t toSpawn = static_cast<uint32_t>(toSpawnFloat);
@@ -58,7 +52,6 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
       glm::vec3 dir = baseDir + spray * (emitter.spreadAngle / 90.0f);
       dir = glm::length(dir) > 0.001f ? glm::normalize(dir) : baseDir;
 
-      // emit() writes directly into the mapped VBO pointers
       if (!pool.emit(transform.position, dir * speed, emitter.startColor, 1.0f,
                      emitter.particleLifetime)) {
         break;
@@ -66,6 +59,8 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
     }
 
     // ── Simulation Phase — SoA backward sweep ──────────────────────────────
+    // Iterating backwards makes kill()'s swap-and-decrement safe (won't
+    // process the swapped-in element twice).
     for (int i = static_cast<int>(pool.active_count) - 1; i >= 0; --i) {
       pool.life[i] += dt;
 
@@ -76,16 +71,28 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
 
       const float t = pool.life[i] / pool.maxLife[i];
 
-      if (pool.gpu_buffer) {
-        pool.gpu_buffer->positionPtr()[i] += pool.velocity[i] * dt;
-        pool.gpu_buffer->colorPtr()[i] =
-            glm::mix(emitter.startColor, emitter.endColor, t);
-        pool.gpu_buffer->scalePtr()[i] = 1.0f * (1.0f - t);
-      }
+      // Integrate physics in CPU-side canonical arrays
+      pool.position[i] += pool.velocity[i] * dt;
+      pool.color[i] = glm::mix(emitter.startColor, emitter.endColor, t);
+      pool.scale[i] = 1.0f * (1.0f - t);
     }
 
-    // Unmap VBOs before the draw call — GPU will read the freshly written data
-    if (pool.gpu_buffer) {
+    // ── GPU Upload — write canonical CPU state into orphaned VBO ───────────
+    // The VBO was freshly orphaned this frame; we must write ALL active slots.
+    // positionPtr()/scalePtr()/colorPtr() are write-only; we never read back.
+    if (pool.gpu_buffer && pool.active_count > 0) {
+      pool.gpu_buffer->beginWrite();
+
+      glm::vec3 *pos_dst = pool.gpu_buffer->positionPtr();
+      float *scale_dst = pool.gpu_buffer->scalePtr();
+      glm::vec4 *col_dst = pool.gpu_buffer->colorPtr();
+
+      for (uint32_t i = 0; i < pool.active_count; ++i) {
+        pos_dst[i] = pool.position[i];
+        scale_dst[i] = pool.scale[i];
+        col_dst[i] = pool.color[i];
+      }
+
       pool.gpu_buffer->endWrite();
       pool.gpu_buffer->setActiveCount(pool.active_count);
     }
