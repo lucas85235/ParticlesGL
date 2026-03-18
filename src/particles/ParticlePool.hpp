@@ -1,3 +1,5 @@
+// DEPRECATED: use particles_v2/ParticlePoolComponent.hpp instead.
+// This file is kept only to compile existing tests without modification.
 #pragma once
 
 #include "ParticleData.hpp"
@@ -8,38 +10,31 @@
 
 namespace ParticleGL::Particles {
 
-class ParticlePool {
+class ParticlePool_Deprecated {
 public:
-  ParticlePool(uint32_t maxParticles);
-  ~ParticlePool() = default;
+  ParticlePool_Deprecated(uint32_t maxParticles);
+  ~ParticlePool_Deprecated() = default;
 
-  // Prevent copies
-  ParticlePool(const ParticlePool &) = delete;
-  ParticlePool &operator=(const ParticlePool &) = delete;
+  ParticlePool_Deprecated(const ParticlePool_Deprecated &) = delete;
+  ParticlePool_Deprecated &operator=(const ParticlePool_Deprecated &) = delete;
 
-  // Allow moves
-  ParticlePool(ParticlePool &&) noexcept = default;
-  ParticlePool &operator=(ParticlePool &&) noexcept = default;
+  ParticlePool_Deprecated(ParticlePool_Deprecated &&) noexcept = default;
+  ParticlePool_Deprecated &
+  operator=(ParticlePool_Deprecated &&) noexcept = default;
 
-  // Emits a new particle if we haven't reached capacity, returning false
-  // otherwise
   bool emit(const ParticleInstanceData &initialInstanceData,
             const ParticleSimData &initialSimData);
 
-  // Kills a particle by swapping it with the last active particle
   void kill(uint32_t index);
 
-  // Flushes current active instance data to the linked InstanceBuffer
   void flushToGPU();
 
-  // Accessors
   uint32_t getActiveParticleCount() const { return active_count_; }
   uint32_t getMaxParticles() const { return max_particles_; }
 
   ParticleInstanceData &getInstanceData(uint32_t index);
   ParticleSimData &getSimData(uint32_t index);
 
-  // Retrieves the encapsulated OpenGL buffer
   const Renderer::InstanceBuffer &getInstanceBuffer() const {
     return *instance_buffer_;
   }
@@ -48,12 +43,13 @@ private:
   uint32_t max_particles_;
   uint32_t active_count_ = 0;
 
-  // Strict contiguous arrays for cache locality
   std::vector<ParticleInstanceData> instance_data_;
   std::vector<ParticleSimData> sim_data_;
 
-  // Wrapper covering the OpenGL GL_DYNAMIC_DRAW VBO
   std::unique_ptr<Renderer::InstanceBuffer> instance_buffer_;
 };
+
+// Legacy alias
+using ParticlePool = ParticlePool_Deprecated;
 
 } // namespace ParticleGL::Particles

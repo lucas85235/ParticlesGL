@@ -7,6 +7,9 @@
 #include "ecs/components/Renderable.hpp"
 #include "ecs/components/Transform.hpp"
 #include "ecs/systems/ParticleSystem.hpp"
+#include "particles_v2/ParticlePoolComponent.hpp"
+#include "particles_v2/ParticleRenderSystem.hpp"
+#include "particles_v2/ParticleSimulationSystem.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
 #include "renderer/Material.hpp"
@@ -113,7 +116,8 @@ void Application::run() {
 
   // ECS Setup
   ECS::Registry registry;
-  ECS::Systems::ParticleSystem particleSystem;
+  ECS::Systems::ParticleSimulationSystem particleSimulationSystem;
+  ECS::Systems::ParticleRenderSystem particleRenderSystem;
 
   UI::ScenePanel scenePanel;
   scenePanel.setRegistry(&registry);
@@ -140,6 +144,19 @@ void Application::run() {
       emitterEntity, ECS::Components::Transform{
                          glm::vec3(0.0f, 0.0f, 0.0f),
                          glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
+
+  // Layout matches the UploadPayload in ParticleRenderSystem: pos(3), scale(1),
+  // color(4)
+  const std::vector<uint32_t> instanceLayout = {3, 1, 4};
+  std::vector<std::unique_ptr<Renderer::InstanceBuffer>> appBuffers;
+  appBuffers.push_back(
+      std::make_unique<Renderer::InstanceBuffer>(5000, instanceLayout));
+
+  Particles::ParticlePoolComponent pool;
+  pool.init(5000);
+  pool.gpu_buffer = appBuffers.back().get();
+  registry.addComponent<Particles::ParticlePoolComponent>(emitterEntity,
+                                                          std::move(pool));
 
   registry.addComponent<ECS::Components::ParticleEmitter>(
       emitterEntity, ECS::Components::ParticleEmitter{
@@ -168,7 +185,7 @@ void Application::run() {
     viewportPanel.applyPendingResize();
 
     // Sim Logic
-    particleSystem.update(registry, dt);
+    particleSimulationSystem.update(registry, dt);
 
     // Wait until beginFrame to draw UI Context
     ui_layer_->beginFrame();
@@ -243,20 +260,7 @@ void Application::run() {
     }
 
     // Render particles
-    auto &pools = particleSystem.getPools();
-    for (const auto &[entity, pool] : pools) {
-      // Un-const it for flush call
-      auto &mutablePool = const_cast<Particles::ParticlePool &>(pool);
-      mutablePool.flushToGPU();
-
-      auto mesh = Core::AssetManager::getDefaultMesh();
-      mesh->bind();
-      mutablePool.getInstanceBuffer().linkToVao(1);
-      mesh->unbind();
-
-      Renderer::Renderer::drawInstanced(*mesh, mutablePool.getInstanceBuffer(),
-                                        particleShader);
-    }
+    particleRenderSystem.render(registry, particleShader);
 
     Renderer::Renderer::endScene();
     framebuffer->unbind();

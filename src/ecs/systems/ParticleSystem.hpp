@@ -1,3 +1,5 @@
+// DEPRECATED: use particles_v2/ParticleSimulationSystem.hpp instead.
+// This file is kept only to compile existing tests without modification.
 #pragma once
 
 #include "ecs/System.hpp"
@@ -6,24 +8,23 @@
 
 namespace ParticleGL::ECS::Systems {
 
-class ParticleSystem : public System {
+class ParticleSystem_Deprecated : public System {
 public:
-  ParticleSystem() = default;
-  ~ParticleSystem() override = default;
+  ParticleSystem_Deprecated() = default;
+  ~ParticleSystem_Deprecated() override = default;
 
   void update(Registry &registry, float dt) override;
 
-  // Direct access to the internal pools for rendering
   std::unordered_map<Entity, Particles::ParticlePool> &getPools() {
     return pools_;
   }
 
 private:
-  // One memory pool per emitting entity
   std::unordered_map<Entity, Particles::ParticlePool> pools_;
-
-  // Accumulator for fractional emissions
   std::unordered_map<Entity, float> emission_accumulators_;
 };
+
+// Legacy alias so existing code (tests, Application) keeps compiling
+using ParticleSystem = ParticleSystem_Deprecated;
 
 } // namespace ParticleGL::ECS::Systems
