@@ -29,8 +29,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include "demo/ComputeExample.hpp"
-
 namespace ParticleGL {
 
 Application *Application::s_instance_ = nullptr;
@@ -113,11 +111,6 @@ void Application::run() {
 
   Core::AssetManager::init();
 
-  Demo::ComputeExample computeExample;
-  if (!computeExample.init("assets/shaders/color_wave.comp")) {
-    PGL_ERROR("Compute shader example failed to initialize");
-  }
-
   // ECS Setup
   ECS::Registry registry;
   ECS::Systems::ParticleSystem particleSystem;
@@ -173,9 +166,6 @@ void Application::run() {
     // Must happen before framebuffer bind to guarantee the FBO texture
     // submitted to ImGui::Image is always the current valid one.
     viewportPanel.applyPendingResize();
-
-    // Compute shader tick (runs on GPU, result read back for UI)
-    computeExample.tick(time_accumulator);
 
     // Sim Logic
     particleSystem.update(registry, dt);
@@ -280,7 +270,6 @@ void Application::run() {
     assetsPanel.onImGuiRender();
     materialsPanel.setSelectedEntity(selectedEntity);
     materialsPanel.onImGuiRender();
-    statsPanel.setComputeSampleColor(computeExample.getSampleColor());
     statsPanel.onImGuiRender();
     viewportPanel.onImGuiRender(framebuffer->getColorAttachmentRendererID());
 
