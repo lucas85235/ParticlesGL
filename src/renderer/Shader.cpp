@@ -4,7 +4,33 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <fstream>
+#include <sstream>
+
 namespace ParticleGL::Renderer {
+
+std::shared_ptr<Shader> Shader::loadFromFile(const std::string &vertexPath,
+                                             const std::string &fragmentPath) {
+  auto readString = [](const std::string &filepath) -> std::string {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+      PGL_ERROR("Failed to open shader file: " << filepath);
+      return "";
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+  };
+
+  std::string vertexSrc = readString(vertexPath);
+  std::string fragmentSrc = readString(fragmentPath);
+
+  if (vertexSrc.empty() || fragmentSrc.empty()) {
+    return nullptr;
+  }
+
+  return std::make_shared<Shader>(vertexSrc, fragmentSrc);
+}
 
 Shader::Shader(const std::string &vertexSource,
                const std::string &fragmentSource) {

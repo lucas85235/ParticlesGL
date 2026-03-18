@@ -16,9 +16,12 @@ add_executable(ParticleGL_Tests
     ../src/ecs/systems/ParticleSystem.cpp
     ../src/serialization/SceneSerializer.cpp
     ../src/renderer/InstanceBuffer.cpp
+    ../src/core/AssetManager.cpp
+    ../src/renderer/Shader.cpp
+    ../src/renderer/Mesh.cpp
 )
 
-target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main glad nlohmann_json::nlohmann_json)
+target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main glad nlohmann_json::nlohmann_json tinyobjloader::tinyobjloader)
 target_include_directories(ParticleGL_Tests PRIVATE ../src)
 target_compile_definitions(ParticleGL_Tests PRIVATE PGL_TEST_ENV)
 

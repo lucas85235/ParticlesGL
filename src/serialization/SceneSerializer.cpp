@@ -1,4 +1,6 @@
 #include "SceneSerializer.hpp"
+#include "../core/AssetManager.hpp"
+#include "../core/Logger.hpp"
 #include "ComponentSerializer.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -36,8 +38,18 @@ void SceneSerializer::serialize(const std::string &filepath) {
 
     entities_json.push_back(entity_json);
   }
-
   scene_json["entities"] = entities_json;
+
+  json materials_json = json::array();
+  for (const auto &[name, material] : Core::AssetManager::getMaterials()) {
+    json mat_json;
+    mat_json["id"] = material->id;
+    mat_json["shaderId"] = material->shaderId;
+    mat_json["baseColor"] = {material->baseColor.r, material->baseColor.g,
+                             material->baseColor.b, material->baseColor.a};
+    materials_json.push_back(mat_json);
+  }
+  scene_json["materials"] = materials_json;
 
   std::ofstream out(filepath);
   out << scene_json.dump(4);
@@ -54,6 +66,26 @@ bool SceneSerializer::deserialize(const std::string &filepath) {
   auto entities = registry_->getEntities();
   for (Entity entity : entities) {
     registry_->destroyEntity(entity);
+  }
+  if (scene_json.contains("materials")) {
+    for (const auto &mat_json : scene_json["materials"]) {
+      std::string id = mat_json["id"];
+      std::string shaderId = mat_json["shaderId"];
+      auto shader = Core::AssetManager::getShader(shaderId);
+      if (shader) {
+        auto mat = std::make_shared<Renderer::Material>(id, shaderId, shader);
+        if (mat_json.contains("baseColor")) {
+          auto bc = mat_json["baseColor"];
+          if (bc.size() == 4) {
+            mat->baseColor = glm::vec4(bc[0], bc[1], bc[2], bc[3]);
+          }
+        }
+        Core::AssetManager::addMaterial(id, mat);
+      } else {
+        PGL_ERROR("Failed to load shader '" << shaderId << "' for material '"
+                                            << id << "'");
+      }
+    }
   }
 
   if (scene_json.contains("entities")) {

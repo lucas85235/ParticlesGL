@@ -25,6 +25,9 @@ public:
   static void addMaterial(const std::string &name,
                           std::shared_ptr<Renderer::Material> material);
   static std::shared_ptr<Renderer::Material> getDefaultMaterial();
+  static const std::unordered_map<std::string,
+                                  std::shared_ptr<Renderer::Material>> &
+  getMaterials();
 
   // Meshes
   static std::shared_ptr<Renderer::Mesh> getMesh(const std::string &path);

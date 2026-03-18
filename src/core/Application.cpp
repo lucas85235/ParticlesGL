@@ -18,6 +18,7 @@
 
 #include "../ui/AssetsPanel.hpp"
 #include "../ui/InspectorPanel.hpp"
+#include "../ui/MaterialsPanel.hpp"
 #include "../ui/ScenePanel.hpp"
 #include "../ui/StatsPanel.hpp"
 #include "../ui/ViewportPanel.hpp"
@@ -100,33 +101,13 @@ void Application::run() {
   Renderer::Shader rawShader(vertexSrc, fragmentSrc);
 
   // Particle Test Shader
-  std::string pVertexSrc = R"(
-        #version 430 core
-        layout (location = 0) in vec3 aPos;
-        // Instance attributes
-        layout (location = 1) in vec3 aInstancePos;
-        layout (location = 2) in float aInstanceScale;
-        layout (location = 3) in vec4 aInstanceColor;
-
-        uniform mat4 u_ViewProjection;
-        out vec4 vColor;
-
-        void main() {
-            vColor = aInstanceColor;
-            vec3 scaledPos = (aPos * aInstanceScale) + aInstancePos;
-            gl_Position = u_ViewProjection * vec4(scaledPos, 1.0);
-        }
-    )";
-
-  std::string pFragmentSrc = R"(
-        #version 430 core
-        in vec4 vColor;
-        out vec4 FragColor;
-        void main() {
-            FragColor = vColor;
-        }
-    )";
-  Renderer::Shader particleShader(pVertexSrc, pFragmentSrc);
+  auto particleShaderPtr = Renderer::Shader::loadFromFile(
+      "assets/shaders/particle.vert", "assets/shaders/particle.frag");
+  if (!particleShaderPtr) {
+    PGL_ERROR("Failed to load particle shader from disk!");
+    return;
+  }
+  Renderer::Shader &particleShader = *particleShaderPtr;
 
   Core::AssetManager::init();
 
@@ -138,6 +119,8 @@ void Application::run() {
   scenePanel.setRegistry(&registry);
   UI::InspectorPanel inspectorPanel;
   inspectorPanel.setRegistry(&registry);
+  UI::MaterialsPanel materialsPanel;
+  materialsPanel.setRegistry(&registry);
   UI::StatsPanel statsPanel;
   statsPanel.setRegistry(&registry);
   UI::ViewportPanel viewportPanel;
@@ -219,6 +202,7 @@ void Application::run() {
 
         ImGui::DockBuilderDockWindow("Scene", dock_id_scene);
         ImGui::DockBuilderDockWindow("Assets", dock_id_assets);
+        ImGui::DockBuilderDockWindow("Materials", dock_id_assets);
         ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
         ImGui::DockBuilderDockWindow("Stats", dock_id_stats);
         ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
@@ -245,8 +229,6 @@ void Application::run() {
         auto material = Core::AssetManager::getMaterial(renderable.materialId);
 
         if (mesh && material) {
-          // Apply baseColor override directly to material for now
-          material->baseColor = renderable.baseColor;
           material->bind();
           Renderer::Renderer::draw(*mesh, *material->shader,
                                    transform.matrix());
@@ -281,6 +263,8 @@ void Application::run() {
     inspectorPanel.onImGuiRender();
     assetsPanel.setSelectedEntity(selectedEntity);
     assetsPanel.onImGuiRender();
+    materialsPanel.setSelectedEntity(selectedEntity);
+    materialsPanel.onImGuiRender();
     statsPanel.onImGuiRender();
     viewportPanel.onImGuiRender(framebuffer->getColorAttachmentRendererID());
 

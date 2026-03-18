@@ -4,10 +4,15 @@
 #include <string>
 #include <unordered_map>
 
+#include <memory>
+
 namespace ParticleGL::Renderer {
 
 class Shader {
 public:
+  static std::shared_ptr<Shader> loadFromFile(const std::string &vertexPath,
+                                              const std::string &fragmentPath);
+
   Shader(const std::string &vertexSource, const std::string &fragmentSource);
   ~Shader();
 

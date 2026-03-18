@@ -92,19 +92,12 @@ inline void from_json(const nlohmann::json &j, Lifetime &l) {
 }
 
 inline void to_json(nlohmann::json &j, const Renderable &r) {
-  j = nlohmann::json{
-      {"meshPath", r.meshPath}, // We will add these fields to Renderable.hpp
-      {"materialId", r.materialId},
-      {"baseColor", r.baseColor}};
+  j = nlohmann::json{{"meshPath", r.meshPath}, {"materialId", r.materialId}};
 }
 
 inline void from_json(const nlohmann::json &j, Renderable &r) {
-  if (j.contains("meshPath"))
-    j.at("meshPath").get_to(r.meshPath);
-  if (j.contains("materialId"))
-    j.at("materialId").get_to(r.materialId);
-  if (j.contains("baseColor"))
-    j.at("baseColor").get_to(r.baseColor);
+  j.at("meshPath").get_to(r.meshPath);
+  j.at("materialId").get_to(r.materialId);
 }
 
 } // namespace ParticleGL::ECS::Components

@@ -20,34 +20,16 @@ void AssetManager::init() {
   PGL_INFO("AssetManager initialized.");
 
   // Default Unlit Shader
-  std::string vertexSrc = R"(
-        #version 430 core
-        layout (location = 0) in vec3 aPos;
-
-        uniform mat4 u_ViewProjection;
-        uniform mat4 u_Transform;
-
-        void main() {
-            gl_Position = u_ViewProjection * u_Transform * vec4(aPos, 1.0);
-        }
-    )";
-  std::string fragmentSrc = R"(
-        #version 430 core
-
-        uniform vec4 u_BaseColor;
-        out vec4 FragColor;
-
-        void main() {
-            FragColor = u_BaseColor;
-        }
-    )";
-
-  auto unlitShader = std::make_shared<Renderer::Shader>(vertexSrc, fragmentSrc);
+  auto unlitShader = Renderer::Shader::loadFromFile(
+      "assets/shaders/unlit.vert", "assets/shaders/unlit.frag");
+  if (!unlitShader) {
+    PGL_ERROR("Failed to load default_unlit shader!");
+  }
   addShader("default_unlit", unlitShader);
 
   // Default Material
-  default_material_ =
-      std::make_shared<Renderer::Material>("default", unlitShader);
+  default_material_ = std::make_shared<Renderer::Material>(
+      "default", "default_unlit", unlitShader);
   addMaterial("default", default_material_);
 
   // Default Triangle Mesh (fallback)
@@ -91,6 +73,11 @@ void AssetManager::addMaterial(const std::string &name,
 
 std::shared_ptr<Renderer::Material> AssetManager::getDefaultMaterial() {
   return default_material_;
+}
+
+const std::unordered_map<std::string, std::shared_ptr<Renderer::Material>> &
+AssetManager::getMaterials() {
+  return materials_;
 }
 
 std::shared_ptr<Renderer::Mesh> AssetManager::getMesh(const std::string &path) {

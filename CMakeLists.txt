@@ -32,6 +32,7 @@ add_executable(ParticleGL
     src/ui/StatsPanel.cpp
     src/ui/AssetsPanel.cpp
     src/ui/ViewportPanel.cpp
+    src/ui/MaterialsPanel.cpp
 )
 
 target_include_directories(ParticleGL PRIVATE src)

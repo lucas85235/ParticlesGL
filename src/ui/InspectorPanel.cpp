@@ -48,13 +48,11 @@ void DrawLifetimeInspector(ECS::Registry &reg, ECS::Entity entity) {
 void DrawRenderableInspector(ECS::Registry &reg, ECS::Entity entity) {
   auto &renderable = reg.getComponent<ECS::Components::Renderable>(entity);
 
-  char meshPathBuf[256];
-  strncpy(meshPathBuf, renderable.meshPath.c_str(), sizeof(meshPathBuf));
-  if (ImGui::InputText("Mesh Path", meshPathBuf, sizeof(meshPathBuf))) {
-    renderable.meshPath = meshPathBuf;
+  char materialIdBuf[256];
+  strncpy(materialIdBuf, renderable.materialId.c_str(), sizeof(materialIdBuf));
+  if (ImGui::InputText("Material ID", materialIdBuf, sizeof(materialIdBuf))) {
+    renderable.materialId = materialIdBuf;
   }
-
-  ImGui::ColorEdit4("Base Color", glm::value_ptr(renderable.baseColor));
 }
 
 template <typename T>
