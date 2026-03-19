@@ -2,6 +2,7 @@
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
+// ── SSBO Bindings (Global Pool) ─────────────────────────────────────────────
 layout(std430, binding = 0) buffer Positions  { vec4  positions[];  };
 layout(std430, binding = 1) buffer Velocities { vec4  velocities[]; };
 layout(std430, binding = 2) buffer Lives      { float lives[];      };
@@ -12,38 +13,44 @@ layout(std430, binding = 6) buffer EndColors  { vec4  endColors[];  };
 layout(std430, binding = 7) buffer Scales     { float scales[];     };
 layout(std430, binding = 8) buffer KillList   { uint  killList[];   };
 
-// SSBO pair: [0]=killCount [1]=activeCount
-// Written by compact; read here. atomicAdd on SSBO uint is core in GL 4.3.
-layout(std430, binding = 10) buffer Counters {
-    uint killCount;
-    uint activeCount;
-};
+// Extracted max_emitters * 2 array of uvec2 {killCount, activeCount}
+layout(std430, binding = 10) buffer Counters  { uvec2 counters[];   };
 
+// ── Phase 4: Multi-Emitter Context ──────────────────────────────────────────
+uniform uint u_emitterIndex;
+uniform uint u_poolOffset;
 uniform float u_dt;
-uniform vec3  u_gravity;
+uniform vec3 u_gravity;
 
 void main() {
-    uint i = gl_GlobalInvocationID.x;
+    uint localIdx = gl_GlobalInvocationID.x;
+    uint activeCount = counters[u_emitterIndex].y;
+    
+    // Only process up to the currently active particles of this emitter
+    if (localIdx >= activeCount) return;
 
-    // Guard: threads beyond the live range do nothing
-    if (i >= activeCount) return;
+    // Map local particle to global pool slot based on the emitter's allocated offset
+    uint i = u_poolOffset + localIdx;
 
-    // ── Physics ────────────────────────────────────────────────────────────
+    // 1. Integration (Euler)
     velocities[i].xyz += u_gravity * u_dt;
     positions[i].xyz  += velocities[i].xyz * u_dt;
 
-    // ── Lifetime ───────────────────────────────────────────────────────────
+    // 2. Lifetime update
     lives[i] += u_dt;
 
-    // ── Property interpolation ─────────────────────────────────────────────
-    float t   = clamp(lives[i] / maxLives[i], 0.0, 1.0);
+    // 3. Interpolate Color & Scale
+    float t = clamp(lives[i] / maxLives[i], 0.0, 1.0);
     colors[i] = mix(startColors[i], endColors[i], t);
     scales[i] = mix(1.0, 0.0, t);
 
-    // ── Death ──────────────────────────────────────────────────────────────
+    // 4. Kill Condition
     if (lives[i] >= maxLives[i]) {
-        // atomicAdd on SSBO member — available in GLSL 4.30 compute
-        uint slot = atomicAdd(killCount, 1u);
-        killList[slot] = i;
+        // atomicAdd on SSBO uint is core in GL 4.30.
+        // It returns the previous value, which gives us a unique index in the kill list segment
+        uint slot = atomicAdd(counters[u_emitterIndex].x, 1u);
+        
+        // Save the index of the dead particle into the global kill list, offset by pool
+        killList[u_poolOffset + slot] = i; 
     }
 }

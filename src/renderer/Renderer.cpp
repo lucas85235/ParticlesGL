@@ -103,4 +103,19 @@ void Renderer::drawIndirect(const Mesh &mesh, const Shader &shader) {
   mesh.unbind();
 }
 
+void Renderer::drawMultiIndirect(const Mesh &mesh, const Shader &shader, uint32_t drawCount) {
+  if (!active_camera_) {
+    PGL_ERROR("Renderer::drawMultiIndirect called outside of beginScene/endScene!");
+    return;
+  }
+  if (drawCount == 0) return;
+  
+  shader.bind();
+  shader.setMat4("u_ViewProjection", active_camera_->getViewProjectionMatrix());
+  mesh.bind();
+  // GL_DRAW_INDIRECT_BUFFER must already be bound by the caller
+  glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, drawCount, 0);
+  mesh.unbind();
+}
+
 } // namespace ParticleGL::Renderer

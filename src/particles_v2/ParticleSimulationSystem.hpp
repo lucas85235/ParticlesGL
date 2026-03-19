@@ -2,6 +2,7 @@
 
 #include "../ecs/System.hpp"
 #include "renderer/ComputeShader.hpp"
+#include "renderer/GpuParticleBuffer.hpp"
 
 #include <memory>
 
@@ -16,6 +17,8 @@ public:
   ~ParticleSimulationSystem() override = default;
 
   void update(Registry &registry, float dt) override;
+  
+  void setGpuBuffer(Renderer::GpuParticleBuffer* buf) { gpu_buffer_ = buf; }
 
 private:
   std::shared_ptr<Renderer::ComputeShader> simulate_shader_;
@@ -23,6 +26,8 @@ private:
 
   bool initialized_ = false;
   void lazyInit();
+
+  Renderer::GpuParticleBuffer* gpu_buffer_ = nullptr;
 };
 
 } // namespace ParticleGL::ECS::Systems

@@ -31,31 +31,26 @@ void ParticleRenderSystem::render(Registry &registry,
     glBeginQuery(GL_TIME_ELAPSED, query_id_);
   }
 
-  auto pools = registry.getEntitiesWith<Particles::ParticlePoolComponent>();
+  if (!gpu_buffer_) {
+    if (!query_in_flight_) {
+      glEndQuery(GL_TIME_ELAPSED);
+      query_in_flight_ = true;
+    }
+    return;
+  }
+  
+  auto &gpuBuf = *gpu_buffer_;
+
+  // Phase 4: Single MultiDrawElementsIndirect covers ALL emitters!
   auto mesh = Core::AssetManager::getDefaultMesh();
 
-  for (Entity entity : pools) {
-    auto &pool =
-        registry.getComponent<Particles::ParticlePoolComponent>(entity);
+  particleShader.bind();
+  gpuBuf.bindSsbos();
+  gpuBuf.bindDrawIndirect();
 
-    if (!pool.gpu_buffer || pool.active_count == 0)
-      continue;
+  Renderer::Renderer::drawMultiIndirect(*mesh, particleShader, gpuBuf.getMaxEmitters());
 
-    auto &gpuBuf = *pool.gpu_buffer;
-
-    // Phase 3: no VBOs — the vertex shader reads per-instance data from SSBOs
-    // via gl_InstanceID. We just bind the mesh, the SSBOs, and issue an
-    // indirect draw (instanceCount comes from the GPU directly).
-    particleShader.bind();
-    gpuBuf.bindSsbos();
-    gpuBuf.bindDrawIndirect();
-
-    // Renderer::drawIndirect sets u_ViewProjection from the active camera
-    // then issues glDrawElementsIndirect from the bound indirect buffer.
-    Renderer::Renderer::drawIndirect(*mesh, particleShader);
-
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-  }
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
   if (!query_in_flight_) {
     glEndQuery(GL_TIME_ELAPSED);

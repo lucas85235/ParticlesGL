@@ -41,6 +41,9 @@ public:
   // caller's responsibility.
   static void drawIndirect(const Mesh &mesh, const Shader &shader);
 
+  // Multi-draw GPU-indirect: executes drawCount separate indirect drawings from the bound GL_DRAW_INDIRECT_BUFFER.
+  static void drawMultiIndirect(const Mesh &mesh, const Shader &shader, uint32_t drawCount);
+
 private:
   static const Camera *active_camera_;
 };

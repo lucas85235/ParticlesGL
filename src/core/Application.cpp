@@ -139,43 +139,51 @@ void Application::run() {
   assetsPanel.setRegistry(&registry);
   assetsPanel.setAssetsRoot("assets");
 
-  // Create emitter entity
-  auto emitterEntity = registry.createEntity();
-  registry.addComponent<ECS::Components::Transform>(
-      emitterEntity, ECS::Components::Transform{
-                         glm::vec3(0.0f, 0.0f, 0.0f),
-                         glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
+  // Phase 4: Global GPU-driven particle pool (max 1M particles, 128 emitters).
+  auto globalGpuBuf = std::make_shared<Renderer::GpuParticleBuffer>(1000000, 128);
+  particleSimulationSystem.setGpuBuffer(globalGpuBuf.get());
+  particleRenderSystem.setGpuBuffer(globalGpuBuf.get());
 
-  // Phase 3: GpuParticleBuffer — full GPU heap of SSBOs + atomic counters.
-  // CPU only writes spawn batch data; simulation runs entirely on GPU.
-  std::vector<std::unique_ptr<Renderer::GpuParticleBuffer>> appBuffers;
-  appBuffers.push_back(std::make_unique<Renderer::GpuParticleBuffer>(5000));
-
-  auto &gpuBuf = *appBuffers.back();
   auto mesh = Core::AssetManager::getDefaultMesh();
-  if (mesh) {
-    gpuBuf.initDrawCommand(mesh->getIndexCount());
-  }
+  uint32_t indexCount = mesh ? mesh->getIndexCount() : 36; // fallback for cube
 
-  Particles::ParticlePoolComponent pool;
-  pool.init(5000, &gpuBuf);
-  registry.addComponent<Particles::ParticlePoolComponent>(emitterEntity,
-                                                          std::move(pool));
+  // Helper lambda to create an emitter
+  auto spawnEmitterTest = [&](glm::vec3 pos, glm::vec4 startColor, glm::vec4 endColor, float speed) {
+    auto entity = registry.createEntity();
+    registry.addComponent<ECS::Components::Transform>(entity, ECS::Components::Transform{
+                                                       pos, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
 
-  registry.addComponent<ECS::Components::ParticleEmitter>(
-      emitterEntity, ECS::Components::ParticleEmitter{
-                         100.0f,                      // emit 100 per sec
-                         0.0f,                        // timeSinceLastEmission
-                         glm::vec3(0.0f, 2.0f, 0.0f), // initialVelocity
-                         25.0f,                       // spreadAngle
-                         glm::vec4(1.0f, 0.5f, 0.2f, 1.0f), // startColor
-                         glm::vec4(1.0f, 1.0f, 1.0f, 0.0f), // endColor
-                         2.0f,                              // particleLifetime
-                         5000,                              // up to 5000 max
-                         0                                  // activeParticles
-                     });
-  registry.addComponent<ECS::Components::Lifetime>(emitterEntity,
-                                                   ECS::Components::Lifetime{});
+    uint32_t emitterIdx = 0, poolOffset = 0;
+    uint32_t maxParticles = 50000; // Let's use larger emitters! 50k each
+    if (globalGpuBuf->allocateEmitter(maxParticles, emitterIdx, poolOffset)) {
+      globalGpuBuf->initDrawCommand(emitterIdx, indexCount, poolOffset);
+      
+      registry.addComponent<ECS::Components::ParticlePoolComponent>(entity, ECS::Components::ParticlePoolComponent{
+          emitterIdx, poolOffset, maxParticles, 0, 0.0f
+      });
+
+      registry.addComponent<ECS::Components::ParticleEmitter>(
+          entity, ECS::Components::ParticleEmitter{
+                             20000.0f,                    // emit 20k per sec
+                             0.0f,                        // timeSinceLastEmission
+                             glm::vec3(0.0f, speed, 0.0f),// initialVelocity
+                             35.0f,                       // spreadAngle
+                             startColor,                  // startColor
+                             endColor,                    // endColor
+                             2.5f,                        // particleLifetime
+                             maxParticles,                // max particles
+                             0                            // activeParticles
+                         });
+      registry.addComponent<ECS::Components::Lifetime>(entity, ECS::Components::Lifetime{});
+    }
+  };
+
+  // Emitter 1 (Fire)
+  spawnEmitterTest(glm::vec3(-15.0f, 0.0f, 0.0f), glm::vec4(1.0f, 0.2f, 0.0f, 1.0f), glm::vec4(0.2f, 0.0f, 0.0f, 0.0f), 15.0f);
+  // Emitter 2 (Magic)
+  spawnEmitterTest(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec4(0.2f, 0.5f, 1.0f, 1.0f), glm::vec4(0.0f, 0.1f, 0.5f, 0.0f), 20.0f);
+  // Emitter 3 (Poison)
+  spawnEmitterTest(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec4(0.2f, 1.0f, 0.2f, 1.0f), glm::vec4(0.0f, 0.2f, 0.0f, 0.0f), 10.0f);
 
   float time_accumulator = 0.0f;
 

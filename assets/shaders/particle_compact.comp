@@ -1,10 +1,8 @@
 #version 430 core
 
-// Single-threaded compaction: runs after particle_simulate.comp.
-// Removes dead particles (swap-and-decrement) then writes instanceCount
-// into the draw indirect buffer for zero-CPU-roundtrip draw.
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+// ── SSBO Bindings (Global Pool) ─────────────────────────────────────────────
 layout(std430, binding = 0) buffer Positions  { vec4  positions[];  };
 layout(std430, binding = 1) buffer Velocities { vec4  velocities[]; };
 layout(std430, binding = 2) buffer Lives      { float lives[];      };
@@ -15,20 +13,13 @@ layout(std430, binding = 6) buffer EndColors  { vec4  endColors[];  };
 layout(std430, binding = 7) buffer Scales     { float scales[];     };
 layout(std430, binding = 8) buffer KillList   { uint  killList[];   };
 
-// DrawElementsIndirectCommand
-layout(std430, binding = 9) buffer DrawCommand {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    uint baseVertex;
-    uint baseInstance;
-} drawCmd;
+// Array of 5 uints per command (count, instanceCount, firstIndex, baseVertex, baseInstance)
+layout(std430, binding = 9) buffer DrawCommand { uint cmds[]; };
+layout(std430, binding = 10) buffer Counters   { uvec2 counters[]; };
 
-// SSBO pair: [0]=killCount [1]=activeCount (same binding as simulate)
-layout(std430, binding = 10) buffer Counters {
-    uint killCount;
-    uint activeCount;
-};
+// ── Phase 4: Multi-Emitter Context ──────────────────────────────────────────
+uniform uint u_emitterIndex;
+uniform uint u_poolOffset;
 
 void swapWithLast(uint dead, uint last) {
     positions[dead]   = positions[last];
@@ -42,22 +33,25 @@ void swapWithLast(uint dead, uint last) {
 }
 
 void main() {
-    uint kills     = killCount;
-    uint liveCount = activeCount;
+    uint kills = counters[u_emitterIndex].x;
+    uint liveCount = counters[u_emitterIndex].y;
 
-    // Swap each dead slot with the tail of the live range
+    // Process all killed particles for this emitter
     for (uint k = 0u; k < kills; k++) {
-        uint deadIdx = killList[k];
-        if (liveCount > 0u && deadIdx < liveCount) {
-            swapWithLast(deadIdx, liveCount - 1u);
+        uint deadIdx = killList[u_poolOffset + k];
+
+        // Ensure we are only swapping with standard bounds and particles still considered active prior to this decrement
+        if (liveCount > 0u && deadIdx < u_poolOffset + liveCount) {
+            uint lastIdx = u_poolOffset + liveCount - 1u;
+            swapWithLast(deadIdx, lastIdx);
             liveCount--;
         }
     }
 
-    // Direct write — single-threaded, safe after GL_SHADER_STORAGE_BARRIER_BIT
-    activeCount = liveCount;
-    killCount   = 0u;
+    // Write back updated stats to Counter buffer and reset killCount for next frame
+    counters[u_emitterIndex].y = liveCount;
+    counters[u_emitterIndex].x = 0u;
 
-    // Write instanceCount into draw indirect command (CPU never reads this)
-    drawCmd.instanceCount = liveCount;
+    // Phase 4: MultiDraw updates cmds[u_emitterIndex * 5 + 1] (instanceCount) directly!
+    cmds[u_emitterIndex * 5 + 1] = liveCount;
 }
