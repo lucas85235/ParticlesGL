@@ -10,6 +10,7 @@
 #include "particles_v2/ParticlePoolComponent.hpp"
 #include "particles_v2/ParticleRenderSystem.hpp"
 #include "particles_v2/ParticleSimulationSystem.hpp"
+#include "particles_v2/RadixSortSystem.hpp"
 #include "../serialization/SceneSerializer.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
@@ -126,6 +127,7 @@ void Application::run() {
   ECS::Registry registry;
   ECS::Systems::ParticleSimulationSystem particleSimulationSystem;
   ECS::Systems::ParticleRenderSystem particleRenderSystem;
+  ECS::Systems::RadixSortSystem radixSortSystem;
 
   UI::ScenePanel scenePanel;
   scenePanel.setRegistry(&registry);
@@ -151,6 +153,7 @@ void Application::run() {
   auto globalGpuBuf = std::make_shared<Renderer::GpuParticleBuffer>(1000000, 128);
   particleSimulationSystem.setGpuBuffer(globalGpuBuf.get());
   particleRenderSystem.setGpuBuffer(globalGpuBuf.get());
+  radixSortSystem.setGpuBuffer(globalGpuBuf.get());
   scenePanel.setGpuBuffer(globalGpuBuf.get());
 
   auto mesh = Core::AssetManager::getDefaultMesh();
@@ -301,6 +304,10 @@ void Application::run() {
         }
       }
     }
+
+    // Sort Alpha-blend emitters back-to-front (GPU Radix Sort)
+    radixSortSystem.setCameraPosition(camera.getPosition());
+    radixSortSystem.sort(registry);
 
     // Render particles
     particleRenderSystem.render(registry, particleShader);

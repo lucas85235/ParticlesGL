@@ -27,6 +27,7 @@ add_executable(ParticleGL
     src/ecs/systems/ParticleSystem.cpp
     src/particles_v2/ParticleSimulationSystem.cpp
     src/particles_v2/ParticleRenderSystem.cpp
+    src/particles_v2/RadixSortSystem.cpp
     src/renderer/PersistentInstanceBuffer.cpp
     src/renderer/GpuParticleBuffer.cpp
     src/renderer/ComputeShader.cpp

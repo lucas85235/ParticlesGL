@@ -47,6 +47,16 @@ GpuParticleBuffer::GpuParticleBuffer(uint32_t maxTotalParticles,
   std::vector<uint32_t> initCounters(maxEmitters * 2, 0u);
   ssbo_counters_ = makeSSBO(10, maxEmitters * 2 * sizeof(uint32_t), initCounters.data());
 
+  // Phase 6: Radix Sort SSBOs
+  // Sorted index buffers — initialised as identity range for first pass
+  std::vector<uint32_t> initIndices(maxTotalParticles, 0u);
+  for (uint32_t i = 0; i < maxTotalParticles; ++i) initIndices[i] = i;
+  ssbo_sortedIndices_    = makeSSBO(11, N1u, initIndices.data());
+  ssbo_sortKeys_         = makeSSBO(12, N1u);               // populated by radix_sort_init.comp
+  ssbo_histogram_        = makeSSBO(13, 256 * sizeof(uint32_t)); // 256 buckets
+  ssbo_prefix_           = makeSSBO(14, 256 * sizeof(uint32_t)); // exclusive prefix
+  ssbo_sortedIndicesOut_ = makeSSBO(15, N1u);               // ping-pong target
+
   PGL_INFO("GpuParticleBuffer (Phase 4): allocated global pool with "
            << maxTotalParticles << " particles and " << maxEmitters
            << " emitters max.");
@@ -56,8 +66,11 @@ GpuParticleBuffer::~GpuParticleBuffer() {
   uint32_t bufs[] = {
       ssbo_positions_, ssbo_velocities_, ssbo_lives_,  ssbo_maxLives_,
       ssbo_colors_,    ssbo_startColors_, ssbo_endColors_, ssbo_scales_,
-      ssbo_killList_,  ssbo_drawCmd_,    ssbo_counters_};
-  glDeleteBuffers(11, bufs);
+      ssbo_killList_,  ssbo_drawCmd_,    ssbo_counters_,
+      // Phase 6 sort buffers
+      ssbo_sortedIndices_, ssbo_sortKeys_, ssbo_histogram_,
+      ssbo_prefix_,        ssbo_sortedIndicesOut_};
+  glDeleteBuffers(16, bufs);
 }
 
 void GpuParticleBuffer::reset() {
@@ -135,6 +148,21 @@ void GpuParticleBuffer::bindCounterSsbo() const {
 
 void GpuParticleBuffer::bindDrawIndirect() const {
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ssbo_drawCmd_);
+}
+
+void GpuParticleBuffer::bindSortSsbos() const {
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, ssbo_sortedIndices_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, ssbo_sortKeys_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, ssbo_histogram_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, ssbo_prefix_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, ssbo_sortedIndicesOut_);
+}
+
+void GpuParticleBuffer::swapSortBuffers() {
+  std::swap(ssbo_sortedIndices_, ssbo_sortedIndicesOut_);
+  // Re-bind so shader reads the up-to-date assignment
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, ssbo_sortedIndices_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, ssbo_sortedIndicesOut_);
 }
 
 void GpuParticleBuffer::uploadSpawnBatch(uint32_t poolOffset,

@@ -52,6 +52,15 @@ public:
 
   uint32_t getMaxEmitters() const { return max_emitters_; }
 
+  // Phase 6: Radix Sort bindings
+  void bindSortSsbos() const;
+  uint32_t getSortedIndicesSsbo() const { return ssbo_sortedIndices_; }
+  uint32_t getSortedIndicesOutSsbo() const { return ssbo_sortedIndicesOut_; }
+  uint32_t getHistogramSsbo() const { return ssbo_histogram_; }
+  // After scatter on a given pass, swap ping-pong buffers
+  void swapSortBuffers();
+
+
 private:
   uint32_t max_total_particles_ = 0;
   uint32_t max_emitters_ = 0;
@@ -62,7 +71,7 @@ private:
   // ID management
   std::vector<bool> emitter_allocated_;
 
-  // SSBO handles
+  // SSBO handles — core simulation (bindings 0–10)
   uint32_t ssbo_positions_ = 0;
   uint32_t ssbo_velocities_ = 0;
   uint32_t ssbo_lives_ = 0;
@@ -76,6 +85,13 @@ private:
   // Multi-Emitter buffers (arrays of size max_emitters_)
   uint32_t ssbo_drawCmd_ = 0;  // Array of DrawElementsIndirectCommand
   uint32_t ssbo_counters_ = 0; // Array of {killCount, activeCount}
+
+  // Phase 6: Radix Sort SSBOs (bindings 11–15)
+  uint32_t ssbo_sortedIndices_    = 0; // binding 11 — output of current pass
+  uint32_t ssbo_sortKeys_         = 0; // binding 12 — float distance bits
+  uint32_t ssbo_histogram_        = 0; // binding 13 — 256 buckets
+  uint32_t ssbo_prefix_           = 0; // binding 14 — exclusive prefix sum
+  uint32_t ssbo_sortedIndicesOut_ = 0; // binding 15 — ping-pong target
 };
 
 } // namespace ParticleGL::Renderer

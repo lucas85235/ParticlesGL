@@ -1,0 +1,32 @@
+#version 430 core
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// ── SSBO Bindings ─────────────────────────────────────────────────────────────
+layout(std430, binding = 10) buffer Counters      { uvec2 counters[];     };
+layout(std430, binding = 11) buffer SortedIndices { uint  sortedIndices[];};
+layout(std430, binding = 12) buffer SortKeys      { uint  sortKeys[];     };
+layout(std430, binding = 14) buffer Prefix        { uint  prefix[];       };
+// Temporary output buffer (ping-pong with sortedIndices after each pass)
+layout(std430, binding = 15) buffer SortedIndicesOut { uint sortedIndicesOut[]; };
+
+uniform uint u_emitterIndex;
+uniform uint u_poolOffset;
+uniform uint u_bitShift;
+
+void main() {
+    uint gid         = gl_GlobalInvocationID.x;
+    uint activeCount = counters[u_emitterIndex].y;
+
+    if (gid >= activeCount) return;
+
+    uint srcIdx  = u_poolOffset + gid;
+    // `sortedIndices` at this point holds the result of the previous pass
+    // (or the identity on the first pass).
+    uint origIdx = sortedIndices[srcIdx];
+    uint key     = sortKeys[origIdx];
+    uint bucket  = (key >> u_bitShift) & 0xFFu;
+
+    // Claim a slot — prefix holds the exclusive cumulative count per bucket
+    uint dest = atomicAdd(prefix[bucket], 1u);
+    sortedIndicesOut[u_poolOffset + dest] = origIdx;
+}
