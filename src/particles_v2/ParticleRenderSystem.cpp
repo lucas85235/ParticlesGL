@@ -1,5 +1,6 @@
 #include "ParticleRenderSystem.hpp"
 #include "../core/AssetManager.hpp"
+#include "../ecs/components/ParticleEmitter.hpp"
 #include "../renderer/Renderer.hpp"
 #include "ParticlePoolComponent.hpp"
 
@@ -38,10 +39,26 @@ void ParticleRenderSystem::render(Registry &registry,
     }
     return;
   }
-  
+
   auto &gpuBuf = *gpu_buffer_;
 
-  // Phase 4: Single MultiDrawElementsIndirect covers ALL emitters!
+  // Determine blend mode from the first emitter found (all emitters share the
+  // same blend mode in this POC; choose the dominant one).
+  using ECS::Components::ParticleBlendMode;
+  ParticleBlendMode blendMode = ParticleBlendMode::Additive;
+  auto emitters = registry.getEntitiesWith<ECS::Components::ParticleEmitter>();
+  if (!emitters.empty()) {
+    blendMode = registry.getComponent<ECS::Components::ParticleEmitter>(emitters[0]).blendMode;
+  }
+
+  glEnable(GL_BLEND);
+  glDepthMask(GL_FALSE); // Particles don't write depth
+  if (blendMode == ParticleBlendMode::Additive) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE); // Order-independent, no sort needed
+  } else {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Correct alpha compositing
+  }
+
   auto mesh = Core::AssetManager::getDefaultMesh();
 
   particleShader.bind();
@@ -51,6 +68,9 @@ void ParticleRenderSystem::render(Registry &registry,
   Renderer::Renderer::drawMultiIndirect(*mesh, particleShader, gpuBuf.getMaxEmitters());
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+  glDepthMask(GL_TRUE);
+  glDisable(GL_BLEND);
 
   if (!query_in_flight_) {
     glEndQuery(GL_TIME_ELAPSED);

@@ -8,7 +8,7 @@
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
 #include <random>
 #include <vector>
 
@@ -122,15 +122,31 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
   // 2. Simulation Phase
   simulate_shader_->bind();
   simulate_shader_->setFloat("u_dt", dt);
-  simulate_shader_->setVec3("u_gravity", glm::vec3(0.0f, -0.5f, 0.0f));
+  simulate_shader_->setVec3("u_gravity", glm::vec3(0.0f, -9.81f, 0.0f));
+  simulate_shader_->setFloat("u_time", elapsed_time_);
+  simulate_shader_->setMat4("u_view",  view_);
+  simulate_shader_->setMat4("u_proj",  proj_);
+
+  // Bind scene depth texture to texture unit 0 for depth-collision sampling
+  if (scene_depth_texture_ != 0) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, scene_depth_texture_);
+    simulate_shader_->setInt("u_sceneDepth", 0);
+  }
 
   for (Entity entity : emitters) {
-    if (!registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity)) continue;
-    auto &pool = registry.getComponent<ECS::Components::ParticlePoolComponent>(entity);
+    if (!registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity) ||
+        !registry.hasComponent<ECS::Components::ParticleEmitter>(entity)) continue;
+    auto &pool    = registry.getComponent<ECS::Components::ParticlePoolComponent>(entity);
+    auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);
     if (pool.active_count == 0) continue;
 
-    simulate_shader_->setUInt("u_emitterIndex", pool.emitter_index);
-    simulate_shader_->setUInt("u_poolOffset", pool.pool_offset);
+    simulate_shader_->setUInt("u_emitterIndex",  pool.emitter_index);
+    simulate_shader_->setUInt("u_poolOffset",    pool.pool_offset);
+    simulate_shader_->setFloat("u_bounciness",   emitter.bounciness);
+    simulate_shader_->setFloat("u_friction",     emitter.friction);
+    simulate_shader_->setFloat("u_turbulence",   emitter.turbulence);
+    simulate_shader_->setFloat("u_floorHeight",  emitter.floorHeight);
 
     const uint32_t groups = (pool.active_count + 63) / 64;
     simulate_shader_->dispatch(groups);
@@ -168,6 +184,8 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
       emitter.activeParticles = pool.active_count;
     }
   }
+
+  elapsed_time_ += dt;
 }
 
 } // namespace ParticleGL::ECS::Systems

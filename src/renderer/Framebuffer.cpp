@@ -50,30 +50,50 @@ Framebuffer &Framebuffer::operator=(Framebuffer &&other) noexcept {
 void Framebuffer::invalidate() {
   if (renderer_id_) {
     glDeleteFramebuffers(1, &renderer_id_);
-    glDeleteTextures(1, &color_attachment_);
+    if (color_attachment_) glDeleteTextures(1, &color_attachment_);
     glDeleteTextures(1, &depth_attachment_);
+    renderer_id_ = 0;
+    color_attachment_ = 0;
+    depth_attachment_ = 0;
   }
 
   glGenFramebuffers(1, &renderer_id_);
   glBindFramebuffer(GL_FRAMEBUFFER, renderer_id_);
 
-  // Color attachment
-  glGenTextures(1, &color_attachment_);
-  glBindTexture(GL_TEXTURE_2D, color_attachment_);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, spec_.width, spec_.height, 0,
-               GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                         color_attachment_, 0);
+  if (spec_.depth_only) {
+    // Depth Pre-Pass: only depth texture, no color attachment.
+    // Used to sample scene depth in compute shaders for particle collision.
+    glGenTextures(1, &depth_attachment_);
+    glBindTexture(GL_TEXTURE_2D, depth_attachment_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, spec_.width, spec_.height,
+                 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                           GL_TEXTURE_2D, depth_attachment_, 0);
+    // Explicitly disable color reads/writes
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+  } else {
+    // Standard FBO: color + depth/stencil
+    glGenTextures(1, &color_attachment_);
+    glBindTexture(GL_TEXTURE_2D, color_attachment_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, spec_.width, spec_.height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           color_attachment_, 0);
 
-  // Depth attachment
-  glGenTextures(1, &depth_attachment_);
-  glBindTexture(GL_TEXTURE_2D, depth_attachment_);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, spec_.width, spec_.height,
-               0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                         GL_TEXTURE_2D, depth_attachment_, 0);
+    glGenTextures(1, &depth_attachment_);
+    glBindTexture(GL_TEXTURE_2D, depth_attachment_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, spec_.width, spec_.height,
+                 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                           GL_TEXTURE_2D, depth_attachment_, 0);
+  }
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     PGL_ERROR("Framebuffer is incomplete!");

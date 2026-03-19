@@ -6,7 +6,7 @@ namespace ParticleGL::Renderer {
 
 struct FramebufferSpecification {
   uint32_t width, height;
-  // Options like swapChainTarget, samples, etc. could go here for a full engine
+  bool depth_only = false; // When true, creates a depth-only FBO (no color attachment)
 };
 
 class Framebuffer {
@@ -26,6 +26,7 @@ public:
   void resize(uint32_t width, uint32_t height);
 
   uint32_t getColorAttachmentRendererID() const { return color_attachment_; }
+  uint32_t getDepthAttachmentRendererID() const { return depth_attachment_; }
   const FramebufferSpecification &getSpecification() const { return spec_; }
 
 private:

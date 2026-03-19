@@ -64,12 +64,18 @@ void Application::run() {
   Renderer::Camera camera(1280, 720);
   camera.setPosition({0.0f, 0.0f, 3.0f});
 
-  // Framebuffer Setup
+  // Main scene framebuffer
   Renderer::FramebufferSpecification fbSpec;
   fbSpec.width = 1280;
   fbSpec.height = 720;
-  std::shared_ptr<Renderer::Framebuffer> framebuffer =
-      std::make_shared<Renderer::Framebuffer>(fbSpec);
+  auto framebuffer = std::make_shared<Renderer::Framebuffer>(fbSpec);
+
+  // Phase 5: Depth pre-pass framebuffer (depth-only, used for particle collision)
+  Renderer::FramebufferSpecification depthFbSpec;
+  depthFbSpec.width  = 1280;
+  depthFbSpec.height = 720;
+  depthFbSpec.depth_only = true;
+  auto depthFramebuffer = std::make_shared<Renderer::Framebuffer>(depthFbSpec);
 
   // We no longer strictly tie the window resize to the camera aspect ratio
   // directly, since the scene view is contained within the ViewportPanel. We
@@ -131,8 +137,9 @@ void Application::run() {
   statsPanel.setRegistry(&registry);
   UI::ViewportPanel viewportPanel;
   viewportPanel.setResizeCallback(
-      [&camera, framebuffer](uint32_t width, uint32_t height) {
+      [&camera, framebuffer, depthFramebuffer](uint32_t width, uint32_t height) {
         framebuffer->resize(width, height);
+        depthFramebuffer->resize(width, height);
         camera.setViewportSize(width, height);
       });
 
@@ -198,7 +205,9 @@ void Application::run() {
     // submitted to ImGui::Image is always the current valid one.
     viewportPanel.applyPendingResize();
 
-    // Sim Logic
+    // Sim Logic: feed camera state before dispatching compute shaders
+    particleSimulationSystem.setCamera(camera.getViewMatrix(), camera.getProjectionMatrix());
+    particleSimulationSystem.setSceneDepthTexture(depthFramebuffer->getDepthAttachmentRendererID());
     particleSimulationSystem.update(registry, dt);
 
     // Wait until beginFrame to draw UI Context
@@ -247,7 +256,27 @@ void Application::run() {
       }
     }
 
-    // Render Scene into Framebuffer
+    // ── Depth Pre-Pass ─────────────────────────────────────────────────────
+    // Render opaque geometry into the depth-only FBO so the compute shader
+    // can perform depth-based scene collision.
+    depthFramebuffer->bind();
+    glClear(GL_DEPTH_BUFFER_BIT);
+    Renderer::Renderer::beginScene(camera);
+    for (auto entity : registry.getEntitiesWith<ECS::Components::Renderable>()) {
+      if (registry.hasComponent<ECS::Components::Transform>(entity)) {
+        auto &transform = registry.getComponent<ECS::Components::Transform>(entity);
+        auto &renderable = registry.getComponent<ECS::Components::Renderable>(entity);
+        auto mesh = Core::AssetManager::getMesh(renderable.meshPath);
+        auto material = Core::AssetManager::getMaterial(renderable.materialId);
+        if (mesh && material) {
+          Renderer::Renderer::draw(*mesh, *material->shader, transform.matrix());
+        }
+      }
+    }
+    Renderer::Renderer::endScene();
+    depthFramebuffer->unbind();
+
+    // ── Main Scene Render ───────────────────────────────────────────────────
     framebuffer->bind();
     Renderer::Renderer::clear();
     Renderer::Renderer::beginScene(camera);
