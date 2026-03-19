@@ -37,9 +37,8 @@ public:
                             const Shader &shader);
 
   // GPU-indirect draw: sets u_ViewProjection then reads the draw command from
-  // the currently bound GL_DRAW_INDIRECT_BUFFER. Binding the buffer is the
-  // caller's responsibility.
-  static void drawIndirect(const Mesh &mesh, const Shader &shader);
+  // the currently bound GL_DRAW_INDIRECT_BUFFER at the specified byte offset.
+  static void drawIndirect(const Mesh &mesh, const Shader &shader, const void* indirect_offset = nullptr);
 
   // Multi-draw GPU-indirect: executes drawCount separate indirect drawings from the bound GL_DRAW_INDIRECT_BUFFER.
   static void drawMultiIndirect(const Mesh &mesh, const Shader &shader, uint32_t drawCount);

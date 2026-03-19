@@ -42,33 +42,42 @@ void ParticleRenderSystem::render(Registry &registry,
 
   auto &gpuBuf = *gpu_buffer_;
 
-  // Determine blend mode from the first emitter found (all emitters share the
-  // same blend mode in this POC; choose the dominant one).
-  using ECS::Components::ParticleBlendMode;
-  ParticleBlendMode blendMode = ParticleBlendMode::Additive;
-  auto emitters = registry.getEntitiesWith<ECS::Components::ParticleEmitter>();
-  if (!emitters.empty()) {
-    blendMode = registry.getComponent<ECS::Components::ParticleEmitter>(emitters[0]).blendMode;
-  }
-
   glEnable(GL_BLEND);
   glDepthMask(GL_FALSE); // Particles don't write depth
-  if (blendMode == ParticleBlendMode::Additive) {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE); // Order-independent, no sort needed
-  } else {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Correct alpha compositing
-  }
 
   auto mesh = Core::AssetManager::getDefaultMesh();
-
   particleShader.bind();
   gpuBuf.bindSsbos();
   gpuBuf.bindDrawIndirect();
 
-  Renderer::Renderer::drawMultiIndirect(*mesh, particleShader, gpuBuf.getMaxEmitters());
+  using ECS::Components::ParticleBlendMode;
+  auto emitters = registry.getEntitiesWith<ECS::Components::ParticleEmitter>();
+
+  for (auto entity : emitters) {
+    if (!registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity)) {
+      continue;
+    }
+    
+    auto &pool = registry.getComponent<ECS::Components::ParticlePoolComponent>(entity);
+    if (pool.pool_size == 0 || pool.active_count == 0) {
+      continue;
+    }
+
+    auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);
+
+    // Apply per-emitter blend mode
+    if (emitter.blendMode == ParticleBlendMode::Additive) {
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE); // Order-independent, Additive
+    } else {
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Standard Alpha
+    }
+
+    // Byte offset into the indirect buffer array: each struct is 5 uint32_t (20 bytes)
+    const void* indirectOffset = reinterpret_cast<const void*>(pool.emitter_index * 5 * sizeof(uint32_t));
+    Renderer::Renderer::drawIndirect(*mesh, particleShader, indirectOffset);
+  }
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
 

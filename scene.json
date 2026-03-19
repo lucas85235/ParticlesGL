@@ -10,11 +10,12 @@
                 "activeParticles": 25,
                 "blendMode": 0,
                 "bounciness": 0.5,
+                "collisionEnabled": true,
                 "emissionRate": 10.0,
                 "endColor": {
                     "w": 0.0,
-                    "x": 0.0,
-                    "y": 0.20000000298023224,
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
                     "z": 0.0
                 },
                 "floorHeight": 0.0,
@@ -29,16 +30,16 @@
                 "spreadAngle": 15.0,
                 "startColor": {
                     "w": 1.0,
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.20000000298023224
+                    "x": 1.0,
+                    "y": 0.20000000298023224,
+                    "z": 0.0
                 },
                 "timeSinceLastEmission": 0.0,
                 "turbulence": 0.0
             },
             "Transform": {
                 "position": {
-                    "x": 1.5,
+                    "x": -1.5,
                     "y": 0.0,
                     "z": 0.0
                 },
@@ -66,6 +67,7 @@
                 "activeParticles": 25,
                 "blendMode": 1,
                 "bounciness": 0.5,
+                "collisionEnabled": false,
                 "emissionRate": 10.0,
                 "endColor": {
                     "w": 0.0,
@@ -73,7 +75,7 @@
                     "y": 0.10000000149011612,
                     "z": 0.5
                 },
-                "floorHeight": 0.0,
+                "floorHeight": -1.0,
                 "friction": 0.8500000238418579,
                 "initialVelocity": {
                     "x": 0.0,
@@ -122,11 +124,12 @@
                 "activeParticles": 25,
                 "blendMode": 0,
                 "bounciness": 0.5,
+                "collisionEnabled": true,
                 "emissionRate": 10.0,
                 "endColor": {
                     "w": 0.0,
-                    "x": 0.20000000298023224,
-                    "y": 0.0,
+                    "x": 0.0,
+                    "y": 0.20000000298023224,
                     "z": 0.0
                 },
                 "floorHeight": 0.0,
@@ -141,16 +144,16 @@
                 "spreadAngle": 15.0,
                 "startColor": {
                     "w": 1.0,
-                    "x": 1.0,
-                    "y": 0.20000000298023224,
-                    "z": 0.0
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.20000000298023224
                 },
                 "timeSinceLastEmission": 0.0,
                 "turbulence": 0.0
             },
             "Transform": {
                 "position": {
-                    "x": -1.5,
+                    "x": 1.5,
                     "y": 0.0,
                     "z": 0.0
                 },

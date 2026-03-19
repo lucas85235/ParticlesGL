@@ -141,12 +141,13 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
     auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);
     if (pool.active_count == 0) continue;
 
-    simulate_shader_->setUInt("u_emitterIndex",  pool.emitter_index);
-    simulate_shader_->setUInt("u_poolOffset",    pool.pool_offset);
-    simulate_shader_->setFloat("u_bounciness",   emitter.bounciness);
-    simulate_shader_->setFloat("u_friction",     emitter.friction);
-    simulate_shader_->setFloat("u_turbulence",   emitter.turbulence);
-    simulate_shader_->setFloat("u_floorHeight",  emitter.floorHeight);
+    simulate_shader_->setUInt("u_emitterIndex",    pool.emitter_index);
+    simulate_shader_->setUInt("u_poolOffset",      pool.pool_offset);
+    simulate_shader_->setFloat("u_bounciness",     emitter.bounciness);
+    simulate_shader_->setFloat("u_friction",       emitter.friction);
+    simulate_shader_->setFloat("u_turbulence",     emitter.turbulence);
+    simulate_shader_->setFloat("u_floorHeight",    emitter.floorHeight);
+    simulate_shader_->setInt("u_collisionEnabled", emitter.collisionEnabled ? 1 : 0);
 
     const uint32_t groups = (pool.active_count + 63) / 64;
     simulate_shader_->dispatch(groups);

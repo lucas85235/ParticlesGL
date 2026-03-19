@@ -28,28 +28,42 @@ void DrawTransformInspector(ECS::Registry &reg, ECS::Entity entity) {
 void DrawParticleEmitterInspector(ECS::Registry &reg, ECS::Entity entity) {
   using ECS::Components::ParticleBlendMode;
   auto &emitter = reg.getComponent<ECS::Components::ParticleEmitter>(entity);
-  ImGui::DragFloat("Emission Rate", &emitter.emissionRate, 1.0f, 0.0f, 10000.0f);
-  ImGui::DragFloat3("Initial Velocity", glm::value_ptr(emitter.initialVelocity), 0.1f);
-  ImGui::DragFloat("Spread Angle", &emitter.spreadAngle, 1.0f, 0.0f, 180.0f);
 
-  ImGui::ColorEdit4("Start Color", glm::value_ptr(emitter.startColor));
-  ImGui::ColorEdit4("End Color", glm::value_ptr(emitter.endColor));
+  if (ImGui::TreeNodeEx("Emission & Lifetime", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::DragFloat("Emission Rate", &emitter.emissionRate, 1.0f, 0.0f, 10000.0f);
+    ImGui::DragFloat("Life Time", &emitter.particleLifetime, 0.1f, 0.0f, 100.0f);
+    ImGui::TreePop();
+  }
 
-  ImGui::DragFloat("Life Time", &emitter.particleLifetime, 0.1f, 0.0f, 100.0f);
+  if (ImGui::TreeNodeEx("Motion", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::DragFloat3("Initial Velocity", glm::value_ptr(emitter.initialVelocity), 0.1f);
+    ImGui::DragFloat("Spread Angle", &emitter.spreadAngle, 1.0f, 0.0f, 180.0f);
+    ImGui::TreePop();
+  }
 
-  ImGui::Separator();
-  ImGui::TextDisabled("── Phase 5: Physics ──────────────────");
-  ImGui::DragFloat("Bounciness",   &emitter.bounciness,  0.01f, 0.0f, 1.0f);
-  ImGui::DragFloat("Friction",     &emitter.friction,    0.01f, 0.0f, 1.0f);
-  ImGui::DragFloat("Turbulence",   &emitter.turbulence,  0.1f,  0.0f, 50.0f);
-  ImGui::DragFloat("Floor Height", &emitter.floorHeight, 0.1f, -100.0f, 100.0f);
+  if (ImGui::TreeNodeEx("Appearance", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::ColorEdit4("Start Color", glm::value_ptr(emitter.startColor));
+    ImGui::ColorEdit4("End Color", glm::value_ptr(emitter.endColor));
+    
+    const char *blendItems[] = {"Additive (fire/plasma)", "Alpha (smoke/cloud)"};
+    int blendIdx = static_cast<int>(emitter.blendMode);
+    if (ImGui::Combo("Blend Mode", &blendIdx, blendItems, 2)) {
+      emitter.blendMode = static_cast<ParticleBlendMode>(blendIdx);
+    }
+    ImGui::TreePop();
+  }
 
-  ImGui::Separator();
-  ImGui::TextDisabled("── Blend Mode ────────────────────────");
-  const char *blendItems[] = {"Additive (fire/plasma)", "Alpha (smoke/cloud)"};
-  int blendIdx = static_cast<int>(emitter.blendMode);
-  if (ImGui::Combo("Blend Mode", &blendIdx, blendItems, 2)) {
-    emitter.blendMode = static_cast<ParticleBlendMode>(blendIdx);
+  if (ImGui::TreeNodeEx("Physics & Advanced", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::DragFloat("Turbulence", &emitter.turbulence, 0.1f, 0.0f, 50.0f);
+    ImGui::Checkbox("Enable Collision", &emitter.collisionEnabled);
+    if (emitter.collisionEnabled) {
+      ImGui::Indent();
+      ImGui::DragFloat("Bounciness",   &emitter.bounciness,  0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Friction",     &emitter.friction,    0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Floor Height", &emitter.floorHeight, 0.1f, -100.0f, 100.0f);
+      ImGui::Unindent();
+    }
+    ImGui::TreePop();
   }
 }
 

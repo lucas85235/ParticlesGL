@@ -26,10 +26,11 @@ struct ParticleEmitter {
   uint32_t activeParticles{0};
 
   // Phase 5: Physics & Rendering
-  float bounciness{0.5f};   // [0, 1] — energy retained after floor bounce (0 = no bounce, 1 = elastic)
-  float friction{0.85f};    // [0, 1] — XZ velocity damping on floor impact
-  float turbulence{0.0f};   // Curl noise field strength; 0 = purely kinematic
-  float floorHeight{0.0f};  // World-space Y of the rigid floor plane
+  bool collisionEnabled{true}; // Toggle depth and floor collisions
+  float bounciness{0.5f};      // [0, 1] — energy retained after floor bounce (0 = no bounce, 1 = elastic)
+  float friction{0.85f};       // [0, 1] — XZ velocity damping on floor impact
+  float turbulence{0.0f};      // Curl noise field strength; 0 = purely kinematic
+  float floorHeight{0.0f};     // World-space Y of the rigid floor plane
 
   ParticleBlendMode blendMode{ParticleBlendMode::Additive};
 };

@@ -90,7 +90,7 @@ void Renderer::drawInstanced(const Mesh &mesh, uint32_t instanceCount,
   mesh.unbind();
 }
 
-void Renderer::drawIndirect(const Mesh &mesh, const Shader &shader) {
+void Renderer::drawIndirect(const Mesh &mesh, const Shader &shader, const void* indirect_offset) {
   if (!active_camera_) {
     PGL_ERROR("Renderer::drawIndirect called outside of beginScene/endScene!");
     return;
@@ -99,7 +99,7 @@ void Renderer::drawIndirect(const Mesh &mesh, const Shader &shader) {
   shader.setMat4("u_ViewProjection", active_camera_->getViewProjectionMatrix());
   mesh.bind();
   // GL_DRAW_INDIRECT_BUFFER must already be bound by the caller
-  glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr);
+  glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, indirect_offset);
   mesh.unbind();
 }
 

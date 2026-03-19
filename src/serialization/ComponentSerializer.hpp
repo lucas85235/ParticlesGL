@@ -68,6 +68,7 @@ inline void to_json(nlohmann::json &j, const ParticleEmitter &pe) {
       {"maxParticles",           pe.maxParticles},
       {"activeParticles",        pe.activeParticles},
       // Phase 5 physics & rendering fields
+      {"collisionEnabled",       pe.collisionEnabled},
       {"bounciness",             pe.bounciness},
       {"friction",               pe.friction},
       {"turbulence",             pe.turbulence},
@@ -86,6 +87,7 @@ inline void from_json(const nlohmann::json &j, ParticleEmitter &pe) {
   j.at("maxParticles").get_to(pe.maxParticles);
   j.at("activeParticles").get_to(pe.activeParticles);
   // Phase 5 fields: use value() for backwards compatibility with old scene files
+  pe.collisionEnabled = j.value("collisionEnabled", true);
   pe.bounciness   = j.value("bounciness",  0.5f);
   pe.friction     = j.value("friction",    0.85f);
   pe.turbulence   = j.value("turbulence",  0.0f);
