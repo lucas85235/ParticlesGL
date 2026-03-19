@@ -2,6 +2,7 @@
 #include "../ecs/components/ParticleEmitter.hpp"
 #include "../ecs/components/Transform.hpp"
 #include "ParticlePoolComponent.hpp"
+#include "core/AssetManager.hpp"
 #include "core/Logger.hpp"
 #include "renderer/GpuParticleBuffer.hpp"
 
@@ -51,9 +52,24 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
 
   // 1. Spawning Phase
   for (Entity entity : emitters) {
-    if (!registry.hasComponent<ECS::Components::Transform>(entity) ||
-        !registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity)) {
+    if (!registry.hasComponent<ECS::Components::Transform>(entity)) {
       continue;
+    }
+
+    if (!registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity)) {
+      auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);
+      uint32_t emitterIdx = 0, poolOffset = 0;
+      if (gpuBuf.allocateEmitter(emitter.maxParticles, emitterIdx, poolOffset)) {
+          auto mesh = Core::AssetManager::getDefaultMesh();
+          uint32_t indexCount = mesh ? mesh->getIndexCount() : 36;
+          gpuBuf.initDrawCommand(emitterIdx, indexCount, poolOffset);
+
+          registry.addComponent<ECS::Components::ParticlePoolComponent>(entity, ECS::Components::ParticlePoolComponent{
+              emitterIdx, poolOffset, emitter.maxParticles, 0, 0.0f
+          });
+      } else {
+          continue;
+      }
     }
 
     auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);

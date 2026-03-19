@@ -1,6 +1,7 @@
 #include "ScenePanel.hpp"
 #include "../ecs/components/Transform.hpp"
 #include "../serialization/SceneSerializer.hpp"
+#include "../renderer/GpuParticleBuffer.hpp"
 #include <cstdio>
 #include <imgui.h>
 
@@ -19,6 +20,9 @@ void ScenePanel::onImGuiRender() {
       Serialization::SceneSerializer serializer(registry_);
       if (serializer.deserialize("scene.json")) {
         selected_entity_ = std::nullopt;
+        if (gpu_buffer_) {
+            gpu_buffer_->reset();
+        }
       }
     }
     ImGui::Separator();

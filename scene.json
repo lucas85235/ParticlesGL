@@ -1,20 +1,40 @@
 {
     "entities": [
         {
-            "Renderable": {
-                "baseColor": {
+            "Lifetime": {
+                "active": true,
+                "current": 0.0,
+                "max": 1.0
+            },
+            "ParticleEmitter": {
+                "activeParticles": 19840,
+                "emissionRate": 20000.0,
+                "endColor": {
+                    "w": 0.0,
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 2.0,
+                    "z": 0.0
+                },
+                "maxParticles": 50000,
+                "particleLifetime": 1.0,
+                "spreadAngle": 35.0,
+                "startColor": {
                     "w": 1.0,
                     "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "y": 0.20000000298023224,
+                    "z": 0.0
                 },
-                "materialId": "",
-                "meshPath": ""
+                "timeSinceLastEmission": 0.0
             },
             "Transform": {
                 "position": {
-                    "x": -1.25,
-                    "y": 0.0,
+                    "x": -1.5,
+                    "y": -0.5,
                     "z": 0.0
                 },
                 "rotation": {
@@ -38,34 +58,34 @@
                 "max": 1.0
             },
             "ParticleEmitter": {
-                "activeParticles": 199,
-                "emissionRate": 100.0,
+                "activeParticles": 19840,
+                "emissionRate": 20000.0,
                 "endColor": {
                     "w": 0.0,
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 0.0,
+                    "y": 0.10000000149011612,
+                    "z": 0.5
                 },
                 "initialVelocity": {
                     "x": 0.0,
                     "y": 2.0,
                     "z": 0.0
                 },
-                "maxParticles": 5000,
-                "particleLifetime": 2.0,
-                "spreadAngle": 25.0,
+                "maxParticles": 50000,
+                "particleLifetime": 1.0,
+                "spreadAngle": 35.0,
                 "startColor": {
                     "w": 1.0,
-                    "x": 1.0,
+                    "x": 0.20000000298023224,
                     "y": 0.5,
-                    "z": 0.20000000298023224
+                    "z": 1.0
                 },
                 "timeSinceLastEmission": 0.0
             },
             "Transform": {
                 "position": {
                     "x": 0.0,
-                    "y": 0.0,
+                    "y": -0.5,
                     "z": 0.0
                 },
                 "rotation": {
@@ -83,35 +103,67 @@
             "id": 1
         },
         {
-            "Renderable": {
-                "baseColor": {
-                    "w": 1.0,
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+            "Lifetime": {
+                "active": true,
+                "current": 0.0,
+                "max": 1.0
+            },
+            "ParticleEmitter": {
+                "activeParticles": 19840,
+                "emissionRate": 20000.0,
+                "endColor": {
+                    "w": 0.0,
+                    "x": 0.0,
+                    "y": 0.20000000298023224,
+                    "z": 0.0
                 },
-                "materialId": "",
-                "meshPath": "assets/models/capsule.obj"
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 2.0,
+                    "z": 0.0
+                },
+                "maxParticles": 50000,
+                "particleLifetime": 1.0,
+                "spreadAngle": 35.0,
+                "startColor": {
+                    "w": 1.0,
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.20000000298023224
+                },
+                "timeSinceLastEmission": 0.0
             },
             "Transform": {
                 "position": {
-                    "x": 1.25,
-                    "y": 0.0,
+                    "x": 1.5,
+                    "y": -0.5,
                     "z": 0.0
                 },
                 "rotation": {
                     "w": 1.0,
-                    "x": 4.371137762859689e-08,
-                    "y": 1.9106846181317578e-15,
-                    "z": 4.371137762859689e-08
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
                 },
                 "scale": {
-                    "x": 0.25,
-                    "y": 0.25,
-                    "z": 0.25
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
                 }
             },
             "id": 2
+        }
+    ],
+    "materials": [
+        {
+            "baseColor": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "id": "default",
+            "shaderId": "default_unlit"
         }
     ]
 }

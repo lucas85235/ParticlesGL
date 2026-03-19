@@ -60,6 +60,21 @@ GpuParticleBuffer::~GpuParticleBuffer() {
   glDeleteBuffers(11, bufs);
 }
 
+void GpuParticleBuffer::reset() {
+  std::fill(emitter_allocated_.begin(), emitter_allocated_.end(), false);
+  next_free_slot_ = 0;
+
+  std::vector<uint32_t> initCmds(max_emitters_ * 5, 0u);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_drawCmd_);
+  glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, initCmds.size() * sizeof(uint32_t), initCmds.data());
+
+  std::vector<uint32_t> initCounters(max_emitters_ * 2, 0u);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_counters_);
+  glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, initCounters.size() * sizeof(uint32_t), initCounters.data());
+
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
 bool GpuParticleBuffer::allocateEmitter(uint32_t max_particles,
                                         uint32_t &outEmitterIndex,
                                         uint32_t &outPoolOffset) {

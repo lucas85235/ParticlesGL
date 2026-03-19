@@ -23,6 +23,8 @@ public:
   GpuParticleBuffer(uint32_t maxTotalParticles, uint32_t maxEmitters);
   ~GpuParticleBuffer();
 
+  void reset();
+
   // Allocates an emitter range from the global pool.
   // Returns true and populates outEmitterIndex and outPoolOffset if space allows.
   bool allocateEmitter(uint32_t max_particles, uint32_t &outEmitterIndex,

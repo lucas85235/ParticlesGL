@@ -10,6 +10,7 @@
 #include "particles_v2/ParticlePoolComponent.hpp"
 #include "particles_v2/ParticleRenderSystem.hpp"
 #include "particles_v2/ParticleSimulationSystem.hpp"
+#include "../serialization/SceneSerializer.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
 #include "renderer/GpuParticleBuffer.hpp"
@@ -143,6 +144,7 @@ void Application::run() {
   auto globalGpuBuf = std::make_shared<Renderer::GpuParticleBuffer>(1000000, 128);
   particleSimulationSystem.setGpuBuffer(globalGpuBuf.get());
   particleRenderSystem.setGpuBuffer(globalGpuBuf.get());
+  scenePanel.setGpuBuffer(globalGpuBuf.get());
 
   auto mesh = Core::AssetManager::getDefaultMesh();
   uint32_t indexCount = mesh ? mesh->getIndexCount() : 36; // fallback for cube
