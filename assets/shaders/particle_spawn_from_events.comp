@@ -1,0 +1,75 @@
+#version 430 core
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// ── Spawn Event SSBO (read) ───────────────────────────────────────────────────
+struct SpawnEvent {
+    vec4 position;
+    vec4 velocity;
+};
+
+layout(std430, binding = 16) buffer SpawnEvents   { SpawnEvent spawnEvents[];  };
+layout(std430, binding = 17) buffer SpawnEvtCount { uint       spawnEventCount;};
+
+// ── Child Emitter Particle Pool (write) ───────────────────────────────────────
+layout(std430, binding = 0) buffer Positions   { vec4  positions[];  };
+layout(std430, binding = 1) buffer Velocities  { vec4  velocities[]; };
+layout(std430, binding = 2) buffer Lives       { float lives[];      };
+layout(std430, binding = 3) buffer MaxLives    { float maxLives[];   };
+layout(std430, binding = 4) buffer Colors      { vec4  colors[];     };
+layout(std430, binding = 5) buffer StartColors { vec4  startColors[];};
+layout(std430, binding = 6) buffer EndColors   { vec4  endColors[];  };
+layout(std430, binding = 7) buffer Scales      { float scales[];     };
+layout(std430, binding = 10) buffer Counters   { uvec2 counters[];   };
+
+// ── Child Emitter Config ──────────────────────────────────────────────────────
+uniform uint  u_childEmitterIndex;
+uniform uint  u_childPoolOffset;
+uniform uint  u_childMaxParticles;
+uniform uint  u_spawnCountPerEvent; // Default: 3
+uniform float u_childSpeedScale;    // Fraction of parent velocity to inherit
+uniform float u_childLifetime;
+uniform vec4  u_childStartColor;
+uniform vec4  u_childEndColor;
+
+// Simple LCG PRNG seeded from thread + event index
+float rand(uint seed) {
+    seed = seed * 747796405u + 2891336453u;
+    seed = ((seed >> ((seed >> 28u) + 4u)) ^ seed) * 277803737u;
+    seed = (seed >> 22u) ^ seed;
+    return float(seed) / 4294967296.0;
+}
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= spawnEventCount) return;
+
+    SpawnEvent ev = spawnEvents[gid];
+    uint childActive = counters[u_childEmitterIndex].y;
+
+    for (uint s = 0; s < u_spawnCountPerEvent; ++s) {
+        uint spawnSlot = atomicAdd(counters[u_childEmitterIndex].y, 1u);
+        if (spawnSlot >= u_childMaxParticles) {
+            // No room — release the reserved slot
+            atomicAdd(counters[u_childEmitterIndex].y, 0xFFFFFFFFu); // -1
+            break;
+        }
+
+        uint idx = u_childPoolOffset + spawnSlot;
+        uint seed = gid * 1000u + s;
+
+        // Scatter velocity: inherit parent velocity + small random spread
+        vec3 spread = vec3(rand(seed)      * 2.0 - 1.0,
+                           rand(seed + 1u) * 2.0 - 1.0,
+                           rand(seed + 2u) * 2.0 - 1.0);
+        vec3 vel = ev.velocity.xyz * u_childSpeedScale + spread * 0.5;
+
+        positions[idx]   = ev.position;
+        velocities[idx]  = vec4(vel, 0.0);
+        lives[idx]       = 0.0;
+        maxLives[idx]    = u_childLifetime;
+        colors[idx]      = u_childStartColor;
+        startColors[idx] = u_childStartColor;
+        endColors[idx]   = u_childEndColor;
+        scales[idx]      = 1.0;
+    }
+}

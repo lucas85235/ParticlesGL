@@ -57,6 +57,14 @@ GpuParticleBuffer::GpuParticleBuffer(uint32_t maxTotalParticles,
   ssbo_prefix_           = makeSSBO(14, 256 * sizeof(uint32_t)); // exclusive prefix
   ssbo_sortedIndicesOut_ = makeSSBO(15, N1u);               // ping-pong target
 
+  // Phase 6.2: Sub-Emitter spawn events
+  // SpawnEvent = vec4 pos + vec4 vel = 32 bytes. Max events = maxTotalParticles.
+  const GLsizeiptr evtBytes = maxTotalParticles * 2 * sizeof(glm::vec4);
+  ssbo_spawnEvents_   = makeSSBO(16, evtBytes);
+  // Event counter: single uint32
+  uint32_t zero = 0u;
+  ssbo_spawnEvtCount_ = makeSSBO(17, sizeof(uint32_t), &zero);
+
   PGL_INFO("GpuParticleBuffer (Phase 4): allocated global pool with "
            << maxTotalParticles << " particles and " << maxEmitters
            << " emitters max.");
@@ -69,8 +77,10 @@ GpuParticleBuffer::~GpuParticleBuffer() {
       ssbo_killList_,  ssbo_drawCmd_,    ssbo_counters_,
       // Phase 6 sort buffers
       ssbo_sortedIndices_, ssbo_sortKeys_, ssbo_histogram_,
-      ssbo_prefix_,        ssbo_sortedIndicesOut_};
-  glDeleteBuffers(16, bufs);
+      ssbo_prefix_,        ssbo_sortedIndicesOut_,
+      // Phase 6.2 sub-emitter event buffers
+      ssbo_spawnEvents_,   ssbo_spawnEvtCount_};
+  glDeleteBuffers(18, bufs);
 }
 
 void GpuParticleBuffer::reset() {
@@ -163,6 +173,26 @@ void GpuParticleBuffer::swapSortBuffers() {
   // Re-bind so shader reads the up-to-date assignment
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, ssbo_sortedIndices_);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, ssbo_sortedIndicesOut_);
+}
+
+void GpuParticleBuffer::bindSubEmitterSsbos() const {
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 16, ssbo_spawnEvents_);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 17, ssbo_spawnEvtCount_);
+}
+
+void GpuParticleBuffer::resetSpawnEvents() {
+  const uint32_t zero = 0u;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_spawnEvtCount_);
+  glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t), &zero);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+uint32_t GpuParticleBuffer::readSpawnEventCount() const {
+  uint32_t val = 0;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_spawnEvtCount_);
+  glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t), &val);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  return val;
 }
 
 void GpuParticleBuffer::uploadSpawnBatch(uint32_t poolOffset,

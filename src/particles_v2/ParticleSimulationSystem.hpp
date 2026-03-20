@@ -31,6 +31,10 @@ private:
   std::shared_ptr<Renderer::ComputeShader> simulate_shader_;
   std::shared_ptr<Renderer::ComputeShader> compact_shader_;
 
+  // Phase 6.2: Sub-Emitter compute shaders
+  std::shared_ptr<Renderer::ComputeShader> emit_events_shader_;
+  std::shared_ptr<Renderer::ComputeShader> spawn_from_events_shader_;
+
   bool initialized_ = false;
   void lazyInit();
 

@@ -156,46 +156,65 @@ void Application::run() {
   radixSortSystem.setGpuBuffer(globalGpuBuf.get());
   scenePanel.setGpuBuffer(globalGpuBuf.get());
 
-  auto mesh = Core::AssetManager::getDefaultMesh();
-  uint32_t indexCount = mesh ? mesh->getIndexCount() : 36; // fallback for cube
-
   // Helper lambda to create an emitter
-  auto spawnEmitterTest = [&](glm::vec3 pos, glm::vec4 startColor, glm::vec4 endColor, float speed) {
+  auto spawnEmitterTest = [&](glm::vec3 pos, glm::vec4 startColor, glm::vec4 endColor, float speed, uint32_t maxP, float emitRate) -> ECS::Entity {
+    auto mesh = Core::AssetManager::getDefaultMesh();
+    uint32_t indexCount = mesh ? mesh->getIndexCount() : 36; // fallback for cube
+    
     auto entity = registry.createEntity();
     registry.addComponent<ECS::Components::Transform>(entity, ECS::Components::Transform{
                                                        pos, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)});
 
     uint32_t emitterIdx = 0, poolOffset = 0;
-    uint32_t maxParticles = 50000; // Let's use larger emitters! 50k each
-    if (globalGpuBuf->allocateEmitter(maxParticles, emitterIdx, poolOffset)) {
+    if (globalGpuBuf->allocateEmitter(maxP, emitterIdx, poolOffset)) {
       globalGpuBuf->initDrawCommand(emitterIdx, indexCount, poolOffset);
       
       registry.addComponent<ECS::Components::ParticlePoolComponent>(entity, ECS::Components::ParticlePoolComponent{
-          emitterIdx, poolOffset, maxParticles, 0, 0.0f
+          emitterIdx, poolOffset, maxP, 0, 0.0f
       });
 
       registry.addComponent<ECS::Components::ParticleEmitter>(
           entity, ECS::Components::ParticleEmitter{
-                             20000.0f,                    // emit 20k per sec
+                             emitRate,                    // emitRate
                              0.0f,                        // timeSinceLastEmission
                              glm::vec3(0.0f, speed, 0.0f),// initialVelocity
                              35.0f,                       // spreadAngle
                              startColor,                  // startColor
                              endColor,                    // endColor
                              2.5f,                        // particleLifetime
-                             maxParticles,                // max particles
+                             maxP,                        // max particles
                              0                            // activeParticles
                          });
       registry.addComponent<ECS::Components::Lifetime>(entity, ECS::Components::Lifetime{});
     }
+    return entity;
   };
 
-  // Emitter 1 (Fire)
-  spawnEmitterTest(glm::vec3(-15.0f, 0.0f, 0.0f), glm::vec4(1.0f, 0.2f, 0.0f, 1.0f), glm::vec4(0.2f, 0.0f, 0.0f, 0.0f), 15.0f);
-  // Emitter 2 (Magic)
-  spawnEmitterTest(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec4(0.2f, 0.5f, 1.0f, 1.0f), glm::vec4(0.0f, 0.1f, 0.5f, 0.0f), 20.0f);
-  // Emitter 3 (Poison)
-  spawnEmitterTest(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec4(0.2f, 1.0f, 0.2f, 1.0f), glm::vec4(0.0f, 0.2f, 0.0f, 0.0f), 10.0f);
+  // 1. Sparks (Child Emitter)
+  ECS::Entity sparks = spawnEmitterTest(glm::vec3(0), 
+      glm::vec4(1.0f, 0.8f, 0.1f, 1.0f), glm::vec4(1.0f, 0.1f, 0.0f, 0.0f), 
+      0.0f, 200000, 0.0f); // 0 emission rate, pure sub-emitter
+  
+  auto& sparkEmitter = registry.getComponent<ECS::Components::ParticleEmitter>(sparks);
+  sparkEmitter.particleLifetime = 1.0f;
+  sparkEmitter.spreadAngle = 180.0f; // omnidirectional explosion
+  sparkEmitter.bounciness = 0.3f;
+  sparkEmitter.blendMode = ECS::Components::ParticleBlendMode::Additive;
+
+  // 2. Rockets (Parent Emitter)
+  ECS::Entity rockets = spawnEmitterTest(glm::vec3(0.0f, -5.0f, 0.0f), 
+      glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.1f, 0.3f, 1.0f, 0.0f), 
+      25.0f, 1000, 5.0f); // 5 rockets per second
+  
+  auto& rocketEmitter = registry.getComponent<ECS::Components::ParticleEmitter>(rockets);
+  rocketEmitter.particleLifetime = 1.5f;
+  rocketEmitter.spreadAngle = 10.0f;
+  
+  // Link Sub-Emitter
+  rocketEmitter.subEmitterEnabled = true;
+  rocketEmitter.childEmitterEntity = sparks;
+  rocketEmitter.spawnCountOnDeath = 150; // 150 sparks per firework
+  rocketEmitter.childSpeedScale = 0.3f;  // Inherit 30% of rocket velocity
 
   float time_accumulator = 0.0f;
 

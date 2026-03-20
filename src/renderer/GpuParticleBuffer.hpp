@@ -60,6 +60,12 @@ public:
   // After scatter on a given pass, swap ping-pong buffers
   void swapSortBuffers();
 
+  // Phase 6.2: Sub-Emitter event SSBOs (bindings 16-17)
+  void bindSubEmitterSsbos() const;
+  void resetSpawnEvents();  // Zero event counter before simulation
+  uint32_t getSpawnEventCountSsbo() const { return ssbo_spawnEvtCount_; }
+  uint32_t readSpawnEventCount() const;
+  uint32_t getMaxTotalParticles() const { return max_total_particles_; }
 
 private:
   uint32_t max_total_particles_ = 0;
@@ -92,6 +98,10 @@ private:
   uint32_t ssbo_histogram_        = 0; // binding 13 — 256 buckets
   uint32_t ssbo_prefix_           = 0; // binding 14 — exclusive prefix sum
   uint32_t ssbo_sortedIndicesOut_ = 0; // binding 15 — ping-pong target
+
+  // Phase 6.2: Sub-Emitter event SSBOs (bindings 16–17)
+  uint32_t ssbo_spawnEvents_   = 0; // binding 16 — SpawnEvent array
+  uint32_t ssbo_spawnEvtCount_ = 0; // binding 17 — atomic event counter
 };
 
 } // namespace ParticleGL::Renderer

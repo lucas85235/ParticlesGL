@@ -24,8 +24,12 @@ void ParticleSimulationSystem::lazyInit() {
       "assets/shaders/particle_simulate.comp");
   compact_shader_ = Renderer::ComputeShader::loadFromFile(
       "assets/shaders/particle_compact.comp");
+  emit_events_shader_ = Renderer::ComputeShader::loadFromFile(
+      "assets/shaders/particle_emit_events.comp");
+  spawn_from_events_shader_ = Renderer::ComputeShader::loadFromFile(
+      "assets/shaders/particle_spawn_from_events.comp");
 
-  if (!simulate_shader_ || !compact_shader_) {
+  if (!simulate_shader_ || !compact_shader_ || !emit_events_shader_ || !spawn_from_events_shader_) {
     PGL_ERROR("ParticleSimulationSystem: failed to load compute shaders.");
     return;
   }
@@ -153,8 +157,62 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
     simulate_shader_->dispatch(groups);
   }
 
-  // Global memory barrier for SSBOs
+  // Global memory barrier for SSBOs (wait for simulation / kill-list generation)
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+  // ── 2b. Sub-Emitter Phase ───────────────────────────────────────────────────
+  // Bind sub-emitter SSBOs (bindings 16, 17)
+  gpuBuf.bindSubEmitterSsbos();
+
+  for (Entity entity : emitters) {
+    if (!registry.hasComponent<ECS::Components::ParticleEmitter>(entity) ||
+        !registry.hasComponent<ECS::Components::ParticlePoolComponent>(entity)) continue;
+
+    auto &emitter = registry.getComponent<ECS::Components::ParticleEmitter>(entity);
+    auto &pool    = registry.getComponent<ECS::Components::ParticlePoolComponent>(entity);
+
+    if (!emitter.subEmitterEnabled || pool.active_count == 0 ||
+        emitter.childEmitterEntity == std::numeric_limits<uint32_t>::max()) continue;
+
+    // We have a valid sub-emitter. Get child.
+    Entity childEntity = static_cast<Entity>(emitter.childEmitterEntity);
+    if (!registry.hasComponent<ECS::Components::ParticleEmitter>(childEntity) ||
+        !registry.hasComponent<ECS::Components::ParticlePoolComponent>(childEntity)) continue;
+
+    auto &childEmitter = registry.getComponent<ECS::Components::ParticleEmitter>(childEntity);
+    auto &childPool    = registry.getComponent<ECS::Components::ParticlePoolComponent>(childEntity);
+
+    // Reset event counter
+    gpuBuf.resetSpawnEvents();
+
+    // 1) Gather dying particles into SpawnEvents array
+    emit_events_shader_->bind();
+    emit_events_shader_->setUInt("u_emitterIndex", pool.emitter_index);
+    emit_events_shader_->setUInt("u_poolOffset",   pool.pool_offset);
+    emit_events_shader_->setUInt("u_maxEvents",    gpuBuf.getMaxTotalParticles());
+    // Safe dispatch using pool.active_count (which is >= killCount)
+    emit_events_shader_->dispatch((pool.active_count + 63) / 64);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    // 2) Spawn children from Gathered Events
+    spawn_from_events_shader_->bind();
+    spawn_from_events_shader_->setUInt("u_childEmitterIndex",  childPool.emitter_index);
+    spawn_from_events_shader_->setUInt("u_childPoolOffset",    childPool.pool_offset);
+    spawn_from_events_shader_->setUInt("u_childMaxParticles",  childPool.pool_size);
+    spawn_from_events_shader_->setUInt("u_spawnCountPerEvent", emitter.spawnCountOnDeath);
+    spawn_from_events_shader_->setFloat("u_childSpeedScale",   emitter.childSpeedScale);
+    spawn_from_events_shader_->setFloat("u_childLifetime",     childEmitter.particleLifetime);
+    spawn_from_events_shader_->setVec4("u_childStartColor",    childEmitter.startColor);
+    spawn_from_events_shader_->setVec4("u_childEndColor",      childEmitter.endColor);
+    
+    // Exact event count is required so we use the lagging active_count or kill limit as an upper-bound.
+    // However, since this runs right after simulation, CPU doesn't know the exact count without stalling.
+    // Instead we can safely dispatch exactly enough groups to cover max theoretically possible events (which is active_count).
+    spawn_from_events_shader_->dispatch((pool.active_count + 63) / 64);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+  }
 
   // 3. Compact Phase
   compact_shader_->bind();

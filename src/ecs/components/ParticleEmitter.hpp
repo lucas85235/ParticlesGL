@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <glm/glm.hpp>
 
 namespace ParticleGL::ECS::Components {
@@ -33,6 +34,15 @@ struct ParticleEmitter {
   float floorHeight{0.0f};     // World-space Y of the rigid floor plane
 
   ParticleBlendMode blendMode{ParticleBlendMode::Additive};
+
+  // ── Phase 6: Sub-Emitter ──────────────────────────────────────────────────
+  // When a particle dies, it may spawn particles in a child emitter.
+  // childEmitterEntity stores the ECS entity ID of the child ParticleEmitter.
+  // UINT32_MAX means "no child emitter" (default).
+  bool     subEmitterEnabled{false};
+  uint32_t childEmitterEntity{std::numeric_limits<uint32_t>::max()};
+  uint32_t spawnCountOnDeath{3};   // Particles to spawn per death event
+  float    childSpeedScale{0.5f};  // Scale on the inheriting parent velocity
 };
 
 } // namespace ParticleGL::ECS::Components
