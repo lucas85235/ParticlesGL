@@ -11,6 +11,8 @@
 #include "particles_v2/ParticleRenderSystem.hpp"
 #include "particles_v2/ParticleSimulationSystem.hpp"
 #include "particles_v2/RadixSortSystem.hpp"
+#include "ecs/systems/CameraControllerSystem.hpp"
+#include "ecs/components/CameraController.hpp"
 #include "../serialization/SceneSerializer.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/Framebuffer.hpp"
@@ -128,6 +130,7 @@ void Application::run() {
   ECS::Systems::ParticleSimulationSystem particleSimulationSystem;
   ECS::Systems::ParticleRenderSystem particleRenderSystem;
   ECS::Systems::RadixSortSystem radixSortSystem;
+  ECS::Systems::CameraControllerSystem cameraControllerSystem;
 
   UI::ScenePanel scenePanel;
   scenePanel.setRegistry(&registry);
@@ -155,6 +158,15 @@ void Application::run() {
   particleRenderSystem.setGpuBuffer(globalGpuBuf.get());
   radixSortSystem.setGpuBuffer(globalGpuBuf.get());
   scenePanel.setGpuBuffer(globalGpuBuf.get());
+
+  // Set up camera entity with controller
+  ECS::Entity cameraEntity = registry.createEntity();
+  registry.addComponent<ECS::Components::Transform>(cameraEntity, ECS::Components::Transform{
+      camera.getPosition(), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(1.0f)
+  });
+  registry.addComponent<ECS::Components::CameraController>(cameraEntity, ECS::Components::CameraController{
+      &camera, 5.0f, 0.2f, false, false, 0.0f, 0.0f
+  });
 
   // Helper lambda to create an emitter
   auto spawnEmitterTest = [&](glm::vec3 pos, glm::vec4 startColor, glm::vec4 endColor, float speed, uint32_t maxP, float emitRate) -> ECS::Entity {
@@ -235,13 +247,20 @@ void Application::run() {
     // Begin GPU Time measurement for the current frame
     glBeginQuery(GL_TIME_ELAPSED, gpu_queries[query_back]);
 
+    // Wait until beginFrame to draw UI Context, which also updates ImGui input states
+    ui_layer_->beginFrame();
+
+    // Update Camera hover state and controller
+    if (registry.hasComponent<ECS::Components::CameraController>(cameraEntity)) {
+        auto& camCtrl = registry.getComponent<ECS::Components::CameraController>(cameraEntity);
+        camCtrl.isViewportHovered = viewportPanel.isHovered();
+    }
+    cameraControllerSystem.update(registry, dt);
+
     // Sim Logic: feed camera state before dispatching compute shaders
     particleSimulationSystem.setCamera(camera.getViewMatrix(), camera.getProjectionMatrix());
     particleSimulationSystem.setSceneDepthTexture(depthFramebuffer->getDepthAttachmentRendererID());
     particleSimulationSystem.update(registry, dt);
-
-    // Wait until beginFrame to draw UI Context
-    ui_layer_->beginFrame();
 
     // Clear the default framebuffer for the main window background
     Renderer::Renderer::clear();

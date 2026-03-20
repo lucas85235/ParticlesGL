@@ -5,6 +5,7 @@
 #include "../ecs/components/ParticleEmitter.hpp"
 #include "../ecs/components/Renderable.hpp"
 #include "../ecs/components/Transform.hpp"
+#include "../ecs/components/CameraController.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -83,6 +84,13 @@ void DrawRenderableInspector(ECS::Registry &reg, ECS::Entity entity) {
   }
 }
 
+void DrawCameraControllerInspector(ECS::Registry &reg, ECS::Entity entity) {
+  auto &camCtrl = reg.getComponent<ECS::Components::CameraController>(entity);
+  ImGui::DragFloat("Move Speed", &camCtrl.moveSpeed, 0.1f, 0.0f, 100.0f);
+  ImGui::DragFloat("Look Speed", &camCtrl.lookSpeed, 0.01f, 0.0f, 5.0f);
+  ImGui::TextDisabled("Hold Right-Mouse in Viewport to fly (WASD/Q/E)");
+}
+
 template <typename T>
 void DrawComponent(const char *name, ECS::Registry &registry,
                    ECS::Entity entity,
@@ -157,6 +165,14 @@ void InspectorPanel::onImGuiRender() {
         }
       }
 
+      if (!registry_->hasComponent<ECS::Components::CameraController>(entity)) {
+        if (ImGui::MenuItem("Camera Controller")) {
+          registry_->addComponent<ECS::Components::CameraController>(
+              entity, ECS::Components::CameraController{});
+          ImGui::CloseCurrentPopup();
+        }
+      }
+
       ImGui::EndPopup();
     }
 
@@ -172,6 +188,9 @@ void InspectorPanel::onImGuiRender() {
         true);
     DrawComponent<ECS::Components::Lifetime>("Lifetime", *registry_, entity,
                                              DrawLifetimeInspector, true);
+    DrawComponent<ECS::Components::CameraController>(
+        "Camera Controller", *registry_, entity, DrawCameraControllerInspector,
+        true);
   } else {
     ImGui::Text("No entity selected");
   }
