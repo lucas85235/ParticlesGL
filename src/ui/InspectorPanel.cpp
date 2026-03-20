@@ -66,6 +66,32 @@ void DrawParticleEmitterInspector(ECS::Registry &reg, ECS::Entity entity) {
     }
     ImGui::TreePop();
   }
+
+  if (ImGui::TreeNodeEx("Sub-Emitters", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Checkbox("Enable Sub-Emitter", &emitter.subEmitterEnabled);
+    if (emitter.subEmitterEnabled) {
+      ImGui::Indent();
+      
+      int childId = (emitter.childEmitterEntity == std::numeric_limits<uint32_t>::max()) ? -1 : static_cast<int>(emitter.childEmitterEntity);
+      if (ImGui::InputInt("Child Entity ID (-1 to clear)", &childId)) {
+        if (childId < 0) {
+          emitter.childEmitterEntity = std::numeric_limits<uint32_t>::max();
+        } else {
+          emitter.childEmitterEntity = static_cast<uint32_t>(childId);
+        }
+      }
+      
+      int spawnCount = static_cast<int>(emitter.spawnCountOnDeath);
+      if (ImGui::DragInt("Spawn On Death", &spawnCount, 1.0f, 1, 100)) {
+        emitter.spawnCountOnDeath = static_cast<uint32_t>(spawnCount);
+      }
+      
+      ImGui::DragFloat("Velocity Scale", &emitter.childSpeedScale, 0.05f, 0.0f, 5.0f);
+      
+      ImGui::Unindent();
+    }
+    ImGui::TreePop();
+  }
 }
 
 void DrawLifetimeInspector(ECS::Registry &reg, ECS::Entity entity) {

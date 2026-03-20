@@ -73,7 +73,12 @@ inline void to_json(nlohmann::json &j, const ParticleEmitter &pe) {
       {"friction",               pe.friction},
       {"turbulence",             pe.turbulence},
       {"floorHeight",            pe.floorHeight},
-      {"blendMode",              static_cast<int>(pe.blendMode)}};
+      {"blendMode",              static_cast<int>(pe.blendMode)},
+      // Phase 6 sub-emitter fields
+      {"subEmitterEnabled",      pe.subEmitterEnabled},
+      {"childEmitterEntity",     pe.childEmitterEntity},
+      {"spawnCountOnDeath",      pe.spawnCountOnDeath},
+      {"childSpeedScale",        pe.childSpeedScale}};
 }
 
 inline void from_json(const nlohmann::json &j, ParticleEmitter &pe) {
@@ -93,6 +98,11 @@ inline void from_json(const nlohmann::json &j, ParticleEmitter &pe) {
   pe.turbulence   = j.value("turbulence",  0.0f);
   pe.floorHeight  = j.value("floorHeight", 0.0f);
   pe.blendMode    = static_cast<ParticleBlendMode>(j.value("blendMode", 0));
+  // Phase 6 fields: backwards compatibility
+  pe.subEmitterEnabled  = j.value("subEmitterEnabled", false);
+  pe.childEmitterEntity = j.value("childEmitterEntity", std::numeric_limits<uint32_t>::max());
+  pe.spawnCountOnDeath  = j.value("spawnCountOnDeath", 3u);
+  pe.childSpeedScale    = j.value("childSpeedScale", 0.5f);
 }
 
 inline void to_json(nlohmann::json &j, const Lifetime &l) {
