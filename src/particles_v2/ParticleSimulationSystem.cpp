@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <random>
 #include <vector>
+#include <chrono>
 
 namespace ParticleGL::ECS::Systems {
 
@@ -46,6 +47,8 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
   if (!gpu_buffer_)
     return;
   
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   auto &gpuBuf = *gpu_buffer_;
 
   auto emitters = registry.getEntitiesWith<ECS::Components::ParticleEmitter>();
@@ -245,6 +248,9 @@ void ParticleSimulationSystem::update(Registry &registry, float dt) {
   }
 
   elapsed_time_ += dt;
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  cpu_simulate_time_ms_ = std::chrono::duration<float, std::milli>(end_time - start_time).count();
 }
 
 } // namespace ParticleGL::ECS::Systems

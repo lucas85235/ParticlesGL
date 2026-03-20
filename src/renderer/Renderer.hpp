@@ -43,8 +43,13 @@ public:
   // Multi-draw GPU-indirect: executes drawCount separate indirect drawings from the bound GL_DRAW_INDIRECT_BUFFER.
   static void drawMultiIndirect(const Mesh &mesh, const Shader &shader, uint32_t drawCount);
 
+  // Metrics
+  static uint32_t getDrawCalls() { return current_draw_calls_; }
+  static void resetStats() { current_draw_calls_ = 0; }
+
 private:
   static const Camera *active_camera_;
+  static uint32_t current_draw_calls_;
 };
 
 } // namespace ParticleGL::Renderer

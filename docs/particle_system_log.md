@@ -1,0 +1,7 @@
+- fazer o alinhamento de memoria pra poder usar sempre o lcache da cpu para que fique eficiente em acesso de cpu/memoria
+- se for aplicar: fazer a sincronizacao da gpu e cpu na parte de fisica do compute shader para que consiga funcionar com objetos dinamicos na cena ao invez de funcionar apenas com dados estaticos, assim como  o chao, por exemplo
+- fazer um verificacao do numero de draw calls e de possiveis gargalos na pipeline de renderizacao, principalmente na hora da sincronizacao gpu cpu.
+- se possivel, fazer uma build para android.
+- chegar em 300 mil particulas a 60 fps
+- adicionar shape de emissao (cone, box, sphere, etc)
+- adicionar opcao de customizacao de mesh e material

@@ -218,6 +218,11 @@ void Application::run() {
 
   float time_accumulator = 0.0f;
 
+  // GPU Timer Queries (Ping-Pong buffers to avoid pipeline stall)
+  GLuint gpu_queries[2];
+  glGenQueries(2, gpu_queries);
+  int query_front = 0, query_back = 1;
+
   while (running_) {
     float dt = 0.016f; // approximate step
     time_accumulator += dt;
@@ -226,6 +231,9 @@ void Application::run() {
     // Must happen before framebuffer bind to guarantee the FBO texture
     // submitted to ImGui::Image is always the current valid one.
     viewportPanel.applyPendingResize();
+
+    // Begin GPU Time measurement for the current frame
+    glBeginQuery(GL_TIME_ELAPSED, gpu_queries[query_back]);
 
     // Sim Logic: feed camera state before dispatching compute shaders
     particleSimulationSystem.setCamera(camera.getViewMatrix(), camera.getProjectionMatrix());
@@ -333,6 +341,29 @@ void Application::run() {
 
     Renderer::Renderer::endScene();
     framebuffer->unbind();
+
+    // End GPU Time measurement
+    glEndQuery(GL_TIME_ELAPSED);
+
+    // Query the front buffer (previous frame) to see if it's available, without blocking
+    GLuint available = 0;
+    glGetQueryObjectuiv(gpu_queries[query_front], GL_QUERY_RESULT_AVAILABLE, &available);
+    if (available) {
+        GLuint64 elapsed_ns = 0;
+        glGetQueryObjectui64v(gpu_queries[query_front], GL_QUERY_RESULT, &elapsed_ns);
+        float gpu_time_ms = static_cast<float>(elapsed_ns) / 1000000.0f;
+        statsPanel.setGpuTimeMs(gpu_time_ms);
+    }
+    
+    // Pass other metrics to StatsPanel
+    statsPanel.setCpuTimeMs(particleSimulationSystem.getCpuSimulateTimeMs());
+    statsPanel.setDrawCalls(Renderer::Renderer::getDrawCalls());
+    
+    // Reset Renderer metrics for next frame
+    Renderer::Renderer::resetStats();
+
+    // Swap GPU queries
+    std::swap(query_front, query_back);
 
     // Render UI Panels
     scenePanel.onImGuiRender();

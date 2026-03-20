@@ -27,6 +27,8 @@ public:
   // Phase 5: bind the depth pre-pass texture (OpenGL texture ID)
   void setSceneDepthTexture(uint32_t texId) { scene_depth_texture_ = texId; }
 
+  float getCpuSimulateTimeMs() const { return cpu_simulate_time_ms_; }
+
 private:
   std::shared_ptr<Renderer::ComputeShader> simulate_shader_;
   std::shared_ptr<Renderer::ComputeShader> compact_shader_;
@@ -45,6 +47,7 @@ private:
   glm::mat4 view_               = glm::mat4(1.0f);
   glm::mat4 proj_               = glm::mat4(1.0f);
   uint32_t  scene_depth_texture_ = 0; // 0 = no depth collision
+  float     cpu_simulate_time_ms_ = 0.0f;
 };
 
 } // namespace ParticleGL::ECS::Systems

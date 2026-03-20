@@ -5,6 +5,7 @@
 namespace ParticleGL::Renderer {
 
 const Camera *Renderer::active_camera_ = nullptr;
+uint32_t Renderer::current_draw_calls_ = 0;
 
 void Renderer::init() {
   // Global OpenGL state configuration
@@ -47,6 +48,7 @@ void Renderer::draw(const Mesh &mesh, const Shader &shader,
 
   mesh.bind();
   glDrawElements(GL_TRIANGLES, mesh.getIndexCount(), GL_UNSIGNED_INT, nullptr);
+  current_draw_calls_++;
   mesh.unbind();
 }
 
@@ -100,6 +102,7 @@ void Renderer::drawIndirect(const Mesh &mesh, const Shader &shader, const void* 
   mesh.bind();
   // GL_DRAW_INDIRECT_BUFFER must already be bound by the caller
   glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, indirect_offset);
+  current_draw_calls_++;
   mesh.unbind();
 }
 
@@ -115,6 +118,7 @@ void Renderer::drawMultiIndirect(const Mesh &mesh, const Shader &shader, uint32_
   mesh.bind();
   // GL_DRAW_INDIRECT_BUFFER must already be bound by the caller
   glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, drawCount, 0);
+  current_draw_calls_++; // Although it wraps multiple draws, it's 1 draw call to the API
   mesh.unbind();
 }
 

@@ -7,27 +7,27 @@
                 "max": 1.0
             },
             "ParticleEmitter": {
-                "activeParticles": 25,
+                "activeParticles": 18000,
                 "blendMode": 0,
-                "bounciness": 0.5,
+                "bounciness": 1.0,
                 "collisionEnabled": true,
-                "emissionRate": 10.0,
+                "emissionRate": 1000.0,
                 "endColor": {
                     "w": 0.0,
                     "x": 0.20000000298023224,
                     "y": 0.0,
                     "z": 0.0
                 },
-                "floorHeight": 0.0,
-                "friction": 0.8500000238418579,
+                "floorHeight": -0.30000001192092896,
+                "friction": 0.0,
                 "initialVelocity": {
                     "x": 0.0,
-                    "y": 5.0,
+                    "y": 4.300000190734863,
                     "z": 0.0
                 },
                 "maxParticles": 50000,
-                "particleLifetime": 2.5,
-                "spreadAngle": 15.0,
+                "particleLifetime": 18.0,
+                "spreadAngle": 18.0,
                 "startColor": {
                     "w": 1.0,
                     "x": 1.0,
@@ -35,7 +35,7 @@
                     "z": 0.0
                 },
                 "timeSinceLastEmission": 0.0,
-                "turbulence": 0.0
+                "turbulence": 35.0
             },
             "Transform": {
                 "position": {
@@ -64,26 +64,26 @@
                 "max": 1.0
             },
             "ParticleEmitter": {
-                "activeParticles": 25,
+                "activeParticles": 12076,
                 "blendMode": 1,
                 "bounciness": 0.5,
-                "collisionEnabled": false,
-                "emissionRate": 10.0,
+                "collisionEnabled": true,
+                "emissionRate": 1343.0,
                 "endColor": {
                     "w": 0.0,
                     "x": 0.0,
                     "y": 0.10000000149011612,
                     "z": 0.5
                 },
-                "floorHeight": -1.0,
+                "floorHeight": -4.199999809265137,
                 "friction": 0.8500000238418579,
                 "initialVelocity": {
                     "x": 0.0,
-                    "y": 5.0,
+                    "y": 6.699999809265137,
                     "z": 0.0
                 },
                 "maxParticles": 50000,
-                "particleLifetime": 2.5,
+                "particleLifetime": 9.0,
                 "spreadAngle": 15.0,
                 "startColor": {
                     "w": 1.0,
@@ -92,7 +92,7 @@
                     "z": 1.0
                 },
                 "timeSinceLastEmission": 0.0,
-                "turbulence": 0.0
+                "turbulence": 35.599998474121094
             },
             "Transform": {
                 "position": {
@@ -124,7 +124,7 @@
                 "activeParticles": 25,
                 "blendMode": 0,
                 "bounciness": 0.5,
-                "collisionEnabled": true,
+                "collisionEnabled": false,
                 "emissionRate": 10.0,
                 "endColor": {
                     "w": 0.0,

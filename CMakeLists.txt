@@ -25,6 +25,7 @@ add_executable(ParticleGL
     src/renderer/Renderer.cpp
     src/particles/ParticlePool.cpp
     src/ecs/systems/ParticleSystem.cpp
+    src/ecs/systems/CameraControllerSystem.cpp
     src/particles_v2/ParticleSimulationSystem.cpp
     src/particles_v2/ParticleRenderSystem.cpp
     src/particles_v2/RadixSortSystem.cpp
