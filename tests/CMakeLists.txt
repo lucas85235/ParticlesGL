@@ -21,9 +21,14 @@ add_executable(ParticleGL_Tests
     ../src/renderer/Mesh.cpp
 )
 
-target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main glad nlohmann_json::nlohmann_json tinyobjloader::tinyobjloader)
+target_link_libraries(ParticleGL_Tests PRIVATE GTest::gtest GTest::gtest_main glad glm::glm nlohmann_json::nlohmann_json tinyobjloader::tinyobjloader)
 target_include_directories(ParticleGL_Tests PRIVATE ../src)
-target_compile_definitions(ParticleGL_Tests PRIVATE PGL_TEST_ENV)
+target_compile_definitions(ParticleGL_Tests PRIVATE PGL_TEST_ENV GLM_ENABLE_EXPERIMENTAL)
+
+if(MSVC)
+    target_compile_options(ParticleGL_Tests PRIVATE /wd4312 /wd4996)
+    target_compile_definitions(ParticleGL_Tests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 
 include(GoogleTest)
 gtest_discover_tests(ParticleGL_Tests)

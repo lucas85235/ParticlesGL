@@ -47,7 +47,8 @@ add_executable(ParticleGL
 target_include_directories(ParticleGL PRIVATE src)
 
 if(MSVC)
-    target_compile_options(ParticleGL PRIVATE /W3 /WX)
+    target_compile_options(ParticleGL PRIVATE /W3 /WX /wd4312 /wd4996)
+    target_compile_definitions(ParticleGL PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
     target_compile_options(ParticleGL PRIVATE -Wall -Wextra -Werror -Wno-unused-parameter)
 endif()

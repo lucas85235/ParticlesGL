@@ -19,11 +19,32 @@ set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLM_ENABLE_CXX_17 ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glm)
 
-# --- nlohmann/json (system package: nlohmann-json3-dev) ---
-find_package(nlohmann_json REQUIRED)
+# --- nlohmann/json ---
+# Try system package first (Linux: nlohmann-json3-dev), fall back to FetchContent.
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    FetchContent_Declare(
+        nlohmann_json
+        URL "https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.zip"
+    )
+    set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+    set(JSON_Install OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
-# --- tinyobjloader (system package: libtinyobjloader-dev) ---
-find_package(tinyobjloader REQUIRED)
+# --- tinyobjloader ---
+# Try system package first (Linux: libtinyobjloader-dev), fall back to FetchContent.
+find_package(tinyobjloader QUIET)
+if(NOT tinyobjloader_FOUND)
+    FetchContent_Declare(
+        tinyobjloader
+        URL "https://github.com/tinyobjloader/tinyobjloader/archive/refs/tags/v2.0.0rc13.zip"
+    )
+    FetchContent_MakeAvailable(tinyobjloader)
+    if(TARGET tinyobjloader AND NOT TARGET tinyobjloader::tinyobjloader)
+        add_library(tinyobjloader::tinyobjloader ALIAS tinyobjloader)
+    endif()
+endif()
 
 # GLAD
 FetchContent_Declare(
